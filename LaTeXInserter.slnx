@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/LaTeXInserter/LaTeXInserter.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/LaTeXInserter.Tests/LaTeXInserter.Tests.csproj" />
+  </Folder>
+</Solution>

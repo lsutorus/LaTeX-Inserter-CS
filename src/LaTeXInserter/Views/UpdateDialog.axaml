@@ -1,0 +1,43 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:LaTeXInserter.ViewModels"
+        x:Class="LaTeXInserter.Views.UpdateDialog"
+        x:DataType="vm:UpdateViewModel"
+        Title="Update Available"
+        WindowDecorations="None"
+        ShowInTaskbar="True"
+        WindowStartupLocation="CenterScreen"
+        Width="400" SizeToContent="Height"
+        Background="#2b2b2b">
+
+    <StackPanel Margin="24" Spacing="12">
+        <TextBlock Text="{Binding HeadingText}"
+                   FontWeight="Bold" FontSize="16"
+                   Foreground="White" HorizontalAlignment="Center" />
+        <TextBlock Text="{Binding SubtitleText}"
+                   FontSize="13" Foreground="#aaaaaa"
+                   HorizontalAlignment="Center" />
+
+        <ScrollViewer MaxHeight="150">
+            <TextBlock Text="{Binding ChangelogText}"
+                       Foreground="#cccccc" FontSize="12"
+                       TextWrapping="Wrap" />
+        </ScrollViewer>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="12">
+            <Button Content="Install Update" Click="OnInstallClick"
+                    Classes="dialog-install"
+                    IsVisible="{Binding !IsDownloading}" />
+            <Button Content="Later" Click="OnLaterClick"
+                    Classes="dialog-later"
+                    IsVisible="{Binding !IsDownloading}" />
+        </StackPanel>
+
+        <StackPanel IsVisible="{Binding IsDownloading}" Spacing="8">
+            <ProgressBar Value="{Binding DownloadProgress}" Minimum="0" Maximum="100" />
+            <TextBlock Text="{Binding StatusText}"
+                       Foreground="#aaaaaa" FontSize="12"
+                       HorizontalAlignment="Center" />
+        </StackPanel>
+    </StackPanel>
+</Window>

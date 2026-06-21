@@ -1,0 +1,47 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="LaTeXInserter.App"
+             RequestedThemeVariant="Dark">
+
+    <Application.Styles>
+        <FluentTheme />
+
+        <!-- Shared dialog button styles -->
+        <Style Selector="Button.dialog-ok">
+            <Setter Property="Background" Value="#4CAF50" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="16,8" />
+            <Setter Property="MinWidth" Value="80" />
+        </Style>
+        <Style Selector="Button.dialog-ok:pointerover">
+            <Setter Property="Background" Value="#388E3C" />
+        </Style>
+        <Style Selector="Button.dialog-install">
+            <Setter Property="Background" Value="#2196F3" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="16,8" />
+            <Setter Property="MinWidth" Value="120" />
+        </Style>
+        <Style Selector="Button.dialog-install:pointerover">
+            <Setter Property="Background" Value="#1976D2" />
+        </Style>
+        <Style Selector="Button.dialog-later">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="#aaaaaa" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="16,8" />
+            <Setter Property="MinWidth" Value="80" />
+        </Style>
+    </Application.Styles>
+
+    <TrayIcon.Icons>
+        <TrayIcons>
+            <TrayIcon Icon="/Assets/LaTeX-Inserter-icon-final.ico"
+                      ToolTipText="LaTeX Inserter" />
+        </TrayIcons>
+    </TrayIcon.Icons>
+</Application>

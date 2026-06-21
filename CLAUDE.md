@@ -39,7 +39,7 @@ Requires admin on Windows (keyboard hooks require elevation).
 - [`docs/architecture.md`](docs/architecture.md) — project structure, MVVM pattern, DI wiring, SharpHook details, Velopack integration, parser grammar, autocomplete design, window activation
 
 **Migration tracking:**
-- [`MIGRATION_PLAN.md`](MIGRATION_PLAN.md) — 6-phase plan with checkboxes, architectural constraints, anti-patterns
+- [`MIGRATION_PLAN.md`](MIGRATION_PLAN.md) — 6-phase plan with checkboxes, architectural constraints, anti-patterns. After completing tasks/phases, mark them as done ([x]).
 
 ## Key Conventions
 
@@ -63,3 +63,17 @@ Requires admin on Windows (keyboard hooks require elevation).
 - **No service locator** — no `App.ServiceProvider.GetService()` in random classes
 - **No `[DllImport]`** — always `[LibraryImport]` + partial methods
 - **No reflection-based JSON** — always `JsonSerializerContext` source generators
+
+## Agent skills
+
+### Issue tracker
+
+Issues tracked in GitHub (lsutorus/LaTeX-Inserter-CS). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Using default Matt Pocock triage labels. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context layout. See `docs/agents/domain.md`.

@@ -1,0 +1,24 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:LaTeXInserter.ViewModels"
+        x:Class="LaTeXInserter.Views.UpToDateDialog"
+        x:DataType="vm:UpToDateViewModel"
+        Title="Check for Updates"
+        WindowDecorations="None"
+        ShowInTaskbar="True"
+        WindowStartupLocation="CenterScreen"
+        Width="320" SizeToContent="Height"
+        Background="#2b2b2b">
+
+    <StackPanel Margin="24" Spacing="12" HorizontalAlignment="Center">
+        <TextBlock Text="{Binding VersionText}"
+                   FontWeight="Bold" FontSize="16"
+                   Foreground="White" HorizontalAlignment="Center" />
+        <TextBlock Text="{Binding SubtitleText}"
+                   FontSize="13" Foreground="#aaaaaa"
+                   HorizontalAlignment="Center" />
+        <Button Content="OK" Click="OnOkClick"
+                HorizontalAlignment="Center"
+                Classes="dialog-ok" />
+    </StackPanel>
+</Window>

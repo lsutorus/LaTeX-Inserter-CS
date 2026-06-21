@@ -1,4 +1,4 @@
-# Migration Plan: Python → C# (.NET 10) Avalonia
+# Migration Plan: Python (C:\Users\lucsu\Desktop\Dev\Projects\latex-inserter) → C# (.NET 10) Avalonia (current root C:\Users\lucsu\Desktop\Dev\Projects\latex-inserter-c#)
 
 Rewrite of LaTeX Inserter from Python/PyQt5 to C#/.NET 10 with Avalonia UI.
 
@@ -27,102 +27,114 @@ Rewrite of LaTeX Inserter from Python/PyQt5 to C#/.NET 10 with Avalonia UI.
 
 ## Phase 1: Foundation & Data Layer
 
-- [ ] Initialize Avalonia UI project (headless, no default main window) targeting .NET 10
-- [ ] Add `LaTeXInserter.sln` at repo root linking src + test projects
-- [ ] Add NuGet refs: `Avalonia`, `Avalonia.Desktop`, `CommunityToolkit.Mvvm`, `System.Text.Json`
-- [ ] Create `Assets/Commands.json` — extract 2,566-command dict from unicodeitplus into JSON
-- [ ] Set `Commands.json` as `<EmbeddedResource>` in `.csproj`
-- [ ] Create `JsonContext : JsonSerializerContext` with `[JsonSerializable]` for `Dictionary<string, string>`
-- [ ] Create `SettingsService` — read/write `settings.json` at `Environment.SpecialFolder.ApplicationData/LaTeX Inserter/`
-- [ ] Create `LatexConverterService` — hand-written recursive descent parser
-  - [ ] Port Lark grammar semantics: `start`, `atom`, `CHARACTER`, `ESCAPED`, `COMMAND`, `group`, `math`, `SUBSCRIPT`, `SUPERSCRIPT`
-  - [ ] Use `ReadOnlySpan<char>` for char-by-char iteration
-  - [ ] Handle nested groups `{...}` recursively (e.g. `x^{\alpha_{i}}`)
-  - [ ] Handle `HAS_ARG` set (45 commands: `\sqrt`, `\hat`, etc.) — these consume the next `{group}`
-  - [ ] Graceful fallback: malformed LaTeX → output raw text, no exceptions
-  - [ ] Load default commands from embedded JSON via `JsonSerializerContext`
-  - [ ] Load custom mappings from plain text file, merge (custom overrides built-in)
-  - [ ] Merge `HAS_ARG` set: custom mappings with `{` in key auto-added
-- [ ] Create `Models/HotkeyChord.cs` — `record HotkeyChord(ModifierMask Modifiers, KeyCode TriggerKey)`
-- [ ] Add `[Flags] enum ModifierMask` with `JsonStringEnumConverter` for readable JSON
-- [ ] Write unit tests for `LatexConverterService` — nested groups, unknown commands, escapes, malformed input
+- [x] Initialize Avalonia UI project (headless, no default main window) targeting .NET 10
+- [x] Add `LaTeXInserter.sln` at repo root linking src + test projects
+- [x] Add NuGet refs: `Avalonia`, `Avalonia.Desktop`, `CommunityToolkit.Mvvm`, `System.Text.Json`
+- [x] Create `Assets/Commands.json` — extract 2,566-command dict from unicodeitplus into JSON
+- [x] Set `Commands.json` as `<EmbeddedResource>` in `.csproj`
+- [x] Create `JsonContext : JsonSerializerContext` with `[JsonSerializable]` for `Dictionary<string, string>`
+- [x] Create `SettingsService` — read/write `settings.json` at `Environment.SpecialFolder.ApplicationData/LaTeX Inserter/`
+- [x] Create `LatexConverterService` — hand-written recursive descent parser
+  - [x] Port Lark grammar semantics: `start`, `atom`, `CHARACTER`, `ESCAPED`, `COMMAND`, `group`, `math`, `SUBSCRIPT`, `SUPERSCRIPT`
+  - [x] Use `ReadOnlySpan<char>` for char-by-char iteration
+  - [x] Handle nested groups `{...}` recursively (e.g. `x^{\alpha_{i}}`)
+  - [x] Handle `HAS_ARG` set (45 commands: `\sqrt`, `\hat`, etc.) — these consume the next `{group}`
+  - [x] Graceful fallback: malformed LaTeX → output raw text, no exceptions
+  - [x] Load default commands from embedded JSON via `JsonSerializerContext`
+  - [x] Load custom mappings from plain text file, merge (custom overrides built-in)
+  - [x] Merge `HAS_ARG` set: custom mappings with `{` in key auto-added
+- [x] Create `Models/HotkeyChord.cs` — `record HotkeyChord(ModifierMask Modifiers, KeyCode TriggerKey)`
+- [x] Add `[Flags] enum ModifierMask` with `JsonStringEnumConverter` for readable JSON
+- [x] Write unit tests for `LatexConverterService` — nested groups, unknown commands, escapes, malformed input
 
 ## Phase 2: Global Hotkey & Input Engine (SharpHook)
 
-- [ ] Add NuGet ref: `SharpHook`
-- [ ] Create `HotkeyService`
-  - [ ] Subscribe to `SimpleGlobalHook` keyboard events (single hook, flag-based dispatch)
-  - [ ] Normal mode: match key events against registered `HotkeyChord`, fire event/callback
-  - [ ] Recording mode: accumulate pressed keys into a candidate `HotkeyChord`
-  - [ ] Thread-safety: hook callback runs on background thread → dispatch to UI thread via `Dispatcher.UIThread.Post`
-- [ ] Create `HotkeyNormalizer` — collapses left/right modifiers, sorts: Ctrl → Alt → Shift → Windows, then non-modifiers alphabetically
-- [ ] Create `HotkeyBlocklist` — `FrozenSet<HotkeyChord>` with 32 Windows-reserved combos (port from Python)
-  - [ ] System-critical: Ctrl+Alt+Delete, Ctrl+Shift+Escape
-  - [ ] Alt combos: Alt+Tab, Alt+Shift+Tab, Alt+F4, Alt+Space, Alt+Escape
-  - [ ] Ctrl combos: Ctrl+Escape, Ctrl+C, Ctrl+V, Ctrl+X, Ctrl+Z, Ctrl+A
-  - [ ] Win combos: Win+Tab, Win+L, Win+D, Win+E, Win+R, Win+I, Win+S, Win+A, Win+P, Win+V, Win+X, Win+G, Win+M, Win+Shift+S, Win+Ctrl+D, Win+Ctrl+F4, Win+Ctrl+Left, Win+Ctrl+Right, Win+Up, Win+Down, Win+Left, Win+Right
-  - [ ] On startup: validate stored hotkey against blocklist; silently reset to default if blocked
-- [ ] Create `InputSimulatorService`
-  - [ ] Use Avalonia `TopLevel.Clipboard` API to write Unicode text to clipboard
-  - [ ] Use SharpHook `IEventSimulator.SimulateKeyPress` / `SimulateKeyRelease` for paste
-  - [ ] `RuntimeInformation.IsOSPlatform` check: Ctrl+V on Windows, Cmd+V on macOS
-- [ ] Create `Platform/IWindowActivator.cs` interface
-- [ ] Create `Platform/IStartupRegistrar.cs` interface
-- [ ] Implement `WindowsWindowActivator.cs` — `AttachThreadInput` + `SetForegroundWindow` pattern
-  - [ ] Use `[LibraryImport]` + partial methods for all Win32 P/Invoke (no `[DllImport]`)
-  - [ ] Store previously-active `IntPtr` window handle
-  - [ ] Restore focus to previous window before simulating paste
-- [ ] Implement `WindowsStartupRegistrar.cs` — Windows Registry startup entry
-- [ ] Write unit tests for `HotkeyNormalizer` and `HotkeyBlocklist`
+- [x] Add NuGet ref: `SharpHook` (already in csproj from Phase 1)
+- [x] Create `IHotkeyService` interface — `IHotkeyService : IDisposable` with `CurrentHotkey`, `IsRecording`, events
+- [x] Create `IClipboardProvider` interface — `SetTextAsync(string)`
+- [x] Create `IInputSimulatorService` interface — `SimulatePasteAsync(string)`
+- [x] Create `IWindowActivator` interface — `CapturePrevious()`, `Activate(IntPtr)`, `Restore()`
+- [x] Create `IStartupRegistrar` interface — `GetIsRegisteredAsync()`, `RegisterAsync()`, `UnregisterAsync()`
+- [x] Create `HotkeyNormalizer` — static utility
+  - [x] `CollapseModifiers(EventMask)` — strip toggles/mouse/simulated flags, collapse left/right → our `ModifierMask`
+  - [x] `Normalize(HotkeyChord)` — canonical sort: Ctrl → Alt → Shift → Windows, then trigger key
+- [x] Create `HotkeyBlocklist` — `FrozenSet<HotkeyChord>` with 32 Windows-reserved combos
+  - [x] System-critical: Ctrl+Alt+Delete, Ctrl+Shift+Escape
+  - [x] Alt combos: Alt+Tab, Alt+Shift+Tab, Alt+F4, Alt+Space, Alt+Escape
+  - [x] Ctrl combos: Ctrl+Escape, Ctrl+C, Ctrl+V, Ctrl+X, Ctrl+Z, Ctrl+A
+  - [x] Win combos: Win+Tab, Win+L, Win+D, Win+E, Win+R, Win+I, Win+S, Win+A, Win+P, Win+V, Win+X, Win+G, Win+M, Win+Shift+S, Win+Ctrl+D, Win+Ctrl+F4, Win+Ctrl+Left, Win+Ctrl+Right, Win+Up, Win+Down, Win+Left, Win+Right
+  - [x] `IsBlocked()` normalizes input before set lookup
+- [x] Create `HotkeyService` — SharpHook single-hook, flag-based dispatch
+  - [x] Constructor: receive `SimpleGlobalHook`, subscribe to `KeyPressed`/`KeyReleased`
+  - [x] Normal mode: exact equality match on collapsed modifiers + trigger key, `e.SuppressEvent = true`, dispatch via `Dispatcher.UIThread.Post`
+  - [x] Recording mode: `List<KeyCode>` accumulator, `volatile bool IsRecording`, clear list on `IsRecording = false`
+  - [x] `lock(_accumulatorLock)` around all list mutations and chord building
+  - [x] `BuildChordFromHeld()`: iterate list, map modifiers via bitwise OR, last non-modifier = trigger
+  - [x] `StartAsync`: `Task.Run(() => _hook.RunAsync())` fire-and-forget on thread pool
+  - [x] `Dispose`: unhook events, dispose hook
+- [x] Create `AvaloniaClipboardProvider` — lazy `TopLevel.GetTopLevel` → `IClipboard.SetTextAsync`
+- [x] Create `InputSimulatorService`
+  - [x] Constructor: inject `IClipboardProvider` + `IEventSimulator`
+  - [x] `SimulatePasteAsync`: clipboard set → left-specific modifier+V key press/release → `Task.Delay(10)` → modifier release
+  - [x] `RuntimeInformation.IsOSPlatform`: Ctrl+V (Windows/Linux) vs Cmd+V (macOS)
+- [x] Create `NativeMethods.cs` — `[LibraryImport]` + partial methods (no `[DllImport]`)
+  - [x] `GetForegroundWindow`, `SetForegroundWindow`, `AttachThreadInput`, `GetWindowThreadProcessId`, `SetFocus`, `SetActiveWindow`, `GetCurrentThreadId`
+- [x] Create `WindowsWindowActivator` — `AttachThreadInput` + `SetForegroundWindow` + `SetFocus` pattern
+  - [x] Store `_previousWindow` handle, capture on `CapturePrevious()`
+  - [x] `Restore()`: re-activate previous window, no-op on zero handle
+- [x] Create `WindowsStartupRegistrar` — registry `HKCU\...\Run` with double-quoted exe path
+- [x] Register all Phase 2 services in `Program.cs` DI container (all singletons)
+  - [x] `SimpleGlobalHook`, `IEventSimulator → EventSimulator`, all 5 service interfaces
+- [x] Write unit tests for `HotkeyNormalizer` and `HotkeyBlocklist` — 59/59 passing
 
 ## Phase 3: System Tray Lifecycle
 
-- [ ] Configure `App.axaml` to use `Avalonia.Controls.TrayIcon`
-- [ ] Create `TrayIconViewModel` (CommunityToolkit.Mvvm `ObservableObject`)
-  - [ ] Commands: ShowHideOverlay, EditMappings, ReloadMappings, ChangeHotkey, CheckForUpdates, Quit
-  - [ ] Dynamic hotkey label: "Show/Hide Overlay (Ctrl+Alt+M)" updates on hotkey change
-  - [ ] Startup toggle: checkable menu item, persisted via `SettingsService`
-- [ ] Wire tray menu actions to `TrayIconViewModel` via `RelayCommand`
-- [ ] Lifecycle: prevent GC of menu items — store as fields on ViewModel (same pattern as Python `self.*`)
-- [ ] Create `AppManager` orchestrator — coordinates services, tray, overlay
-- [ ] On startup: validate stored hotkey against blocklist, reset if blocked
-- [ ] On startup: clean temp download dir from previous updates
-- [ ] On quit: unhook all SharpHook listeners
+- [x] Configure `App.axaml` to use `Avalonia.Controls.TrayIcon`
+- [x] Create `TrayIconViewModel` (CommunityToolkit.Mvvm `ObservableObject`)
+  - [x] Commands: ShowHideOverlay, EditMappings, ReloadMappings, ChangeHotkey, CheckForUpdates, Quit
+  - [x] Dynamic hotkey label: "Show/Hide Overlay (Ctrl+Alt+M)" updates on hotkey change
+  - [x] Startup toggle: checkable menu item, persisted via `SettingsService`
+- [x] Wire tray menu actions to `TrayIconViewModel` via `RelayCommand`
+- [x] Lifecycle: prevent GC of menu items — store as fields on ViewModel (same pattern as Python `self.*`)
+- [x] Create `AppManager` orchestrator — coordinates services, tray, overlay
+- [x] On startup: validate stored hotkey against blocklist, reset if blocked
+- [x] On startup: clean temp download dir from previous updates
+- [x] On quit: unhook all SharpHook listeners
 
 ## Phase 4: The Avalonia Popup UI
 
-- [ ] Create `OverlayWindow.axaml` — borderless, translucent, topmost, frameless
-  - [ ] Set `WindowStyle="None"`, `SystemDecorations="None"`, `Topmost="True"`
-  - [ ] Window icon from `LaTeX-Inserter-icon-final.ico`
-  - [ ] Semi-transparent dark background `#2b2b2b` (match Python overlay)
-- [ ] Create `OverlayViewModel`
-  - [ ] `InputText` (bound to TextBox)
-  - [ ] `PreviewText` (Unicode preview, updated on every keystroke via `LatexConverterService`)
-  - [ ] `AutocompleteItems` — `ObservableCollection<string>` filtered by trailing `\word`
-  - [ ] `IsAutocompleteOpen` — controls Popup visibility
-  - [ ] `AutocompleteSelectedItem` — tracks ListBox selection
-- [ ] Smart window positioning (port from Python):
-  - [ ] Cursor position as default top-left corner
-  - [ ] Flip right if overflows right edge
-  - [ ] Flip bottom if overflows bottom edge
-  - [ ] Clamp to screen bounds
-- [ ] Auto-focus TextBox on window show
-- [ ] Focus-stealing: call `IWindowActivator.Activate()` on show (Win32 `AttachThreadInput` pattern)
-- [ ] Keyboard routing in overlay:
-  - [ ] Escape → hide window
-  - [ ] Tab (popup open) → commit autocomplete, preserve prefix
-  - [ ] Enter (popup open) → commit autocomplete, preserve prefix
-  - [ ] Enter (popup closed) → convert → clipboard → hide → activate previous window → simulate paste
-- [ ] Create `UpToDateDialog.axaml` — port themed frameless dialog
-  - [ ] Bold heading "You are running the latest version"
-  - [ ] Subtitle with current version
-  - [ ] Green OK button
-- [ ] Create `UpdateDialog.axaml` — port themed frameless dialog
-  - [ ] Bold heading "Version X.Y.Z is available"
-  - [ ] Subtitle with current version
-  - [ ] Changelog rendered as markdown with orange links
-  - [ ] Blue "Install Update" button + "Later" button
-  - [ ] Progress bar + status label
+- [x] Create `OverlayWindow.axaml` — borderless, translucent, topmost, frameless
+  - [x] Set `WindowDecorations="None"`, `Topmost="True"`
+  - [x] Window icon from `LaTeX-Inserter-icon-final.ico`
+  - [x] Semi-transparent dark background `#2b2b2b` (match Python overlay)
+- [x] Create `OverlayViewModel`
+  - [x] `InputText` (bound to TextBox)
+  - [x] `PreviewText` (Unicode preview, updated on every keystroke via `LatexConverterService`)
+  - [x] `AutocompleteItems` — `ObservableCollection<string>` filtered by trailing `\word`
+  - [x] `IsAutocompleteOpen` — controls Popup visibility
+  - [x] `AutocompleteSelectedIndex` — tracks ListBox selection
+- [x] Smart window positioning (port from Python):
+  - [x] Cursor position as default top-left corner
+  - [x] Flip right if overflows right edge
+  - [x] Flip bottom if overflows bottom edge
+  - [x] Clamp to screen bounds
+- [x] Auto-focus TextBox on window show
+- [x] Focus-stealing: call `IWindowActivator.Activate()` on show (Win32 `AttachThreadInput` pattern)
+- [x] Keyboard routing in overlay:
+  - [x] Escape → hide window
+  - [x] Tab (popup open) → commit autocomplete, preserve prefix
+  - [x] Enter (popup open) → commit autocomplete, preserve prefix
+  - [x] Enter (popup closed) → convert → clipboard → hide → activate previous window → simulate paste
+- [x] Create `UpToDateDialog.axaml` — port themed frameless dialog
+  - [x] Bold heading "You are running the latest version"
+  - [x] Subtitle with current version
+  - [x] Green OK button
+- [x] Create `UpdateDialog.axaml` — port themed frameless dialog
+  - [x] Bold heading "Version X.Y.Z is available"
+  - [x] Subtitle with current version
+  - [x] Changelog rendered as plain text (Phase 6 can add markdown renderer)
+  - [x] Blue "Install Update" button + "Later" button
+  - [x] Progress bar + status label
 
 ## Phase 5: Change Hotkey Dialog & Settings Validation
 

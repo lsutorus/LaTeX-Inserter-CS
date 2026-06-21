@@ -1,0 +1,62 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:LaTeXInserter.ViewModels"
+        x:Class="LaTeXInserter.Views.OverlayWindow"
+        x:DataType="vm:OverlayViewModel"
+        Title="LaTeX Inserter"
+        WindowDecorations="None"
+        Topmost="True"
+        ShowInTaskbar="False"
+        SizeToContent="Height"
+        Width="350"
+        Opacity="0"
+        Background="#2b2b2b">
+
+    <Window.Styles>
+        <Style Selector="TextBox.overlay-input">
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="CaretBrush" Value="White" />
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="Padding" Value="8,6" />
+        </Style>
+        <Style Selector="TextBox.overlay-input:focus">
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="TextBox.overlay-input:pointerover">
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+    </Window.Styles>
+
+    <StackPanel Margin="8">
+        <TextBox x:Name="InputTextBox"
+                 Classes="overlay-input"
+                 Text="{Binding InputText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+        <Border Height="24" VerticalAlignment="Center" Margin="8,2,8,4">
+            <TextBlock Text="{Binding PreviewText}"
+                       Foreground="#cccccc"
+                       FontSize="14"
+                       TextWrapping="NoWrap" />
+        </Border>
+
+        <Popup x:Name="AutocompletePopup"
+               IsOpen="{Binding IsAutocompleteOpen}"
+               PlacementTarget="{Binding #InputTextBox}"
+               Placement="Bottom"
+               IsLightDismissEnabled="False">
+            <Border Background="#1e1e1e" BorderBrush="#444" BorderThickness="1"
+                    CornerRadius="4" Padding="4" MaxHeight="200">
+                <ListBox x:Name="AutocompleteListBox"
+                         ItemsSource="{Binding AutocompleteItems}"
+                         SelectedIndex="{Binding AutocompleteSelectedIndex}"
+                         Focusable="False"
+                         FontSize="13"
+                         Foreground="#cccccc" />
+            </Border>
+        </Popup>
+    </StackPanel>
+</Window>
