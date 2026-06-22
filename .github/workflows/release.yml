@@ -1,0 +1,48 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publish (Native AOT)
+        run: dotnet publish src/LaTeXInserter -c Release -r win-x64 -o publish
+
+      - name: Install Velopack CLI
+        run: dotnet tool install --global vpk
+
+      - name: Pack with Velopack (NSIS)
+        run: |
+          vpk pack --packId LaTeXInserter --packVersion ${{ github.ref_name }} --packDir publish --format nsis --mainExe LaTeXInserter.exe
+
+      - name: Upload to GitHub Releases
+        run: |
+          vpk upload github --repoUrl https://github.com/lsutorus/LaTeX-Inserter-CS --token ${{ secrets.GITHUB_TOKEN }} --releaseName ${{ github.ref_name }}
+
+      - name: Generate SHA256 for Setup.exe
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem -Path . -Filter "Setup.exe" -Recurse | Select-Object -First 1
+          if ($setup) {
+            $hash = (Get-FileHash -Path $setup.FullName -Algorithm SHA256).Hash
+            "$hash  $($setup.Name)" | Out-File -FilePath "Setup.exe.sha256" -Encoding utf8NoBOM
+            gh release upload ${{ github.ref_name }} "Setup.exe.sha256" --repo lsutorus/LaTeX-Inserter-CS
+          }
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

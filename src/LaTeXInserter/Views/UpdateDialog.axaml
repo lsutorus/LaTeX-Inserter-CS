@@ -30,7 +30,7 @@
                     IsVisible="{Binding !IsDownloading}" />
             <Button Content="Later" Click="OnLaterClick"
                     Classes="dialog-later"
-                    IsVisible="{Binding !IsDownloading}" />
+                    IsVisible="{Binding IsLaterVisible}" />
         </StackPanel>
 
         <StackPanel IsVisible="{Binding IsDownloading}" Spacing="8">

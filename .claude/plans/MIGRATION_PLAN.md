@@ -137,39 +137,38 @@ Rewrite of LaTeX Inserter from Python/PyQt5 to C#/.NET 10 with Avalonia UI.
 
 ## Phase 5: Change Hotkey Dialog & Settings Validation
 
-- [ ] Create `HotkeyDialogWindow.axaml` — themed frameless dialog for recording
-- [ ] Create `HotkeyDialogViewModel`
-  - [ ] On open: set `HotkeyService.IsRecording = true` (flag-based dispatch)
-  - [ ] Reuse `HotkeyService.IsRecording` directly — do not implement a second/parallel recording-flag mechanism in the dialog VM
-  - [ ] Accumulate key presses into candidate `HotkeyChord`
-  - [ ] Show recorded keys in real-time
-  - [ ] On accept: validate against `HotkeyBlocklist`; if blocked, show warning + re-record
-  - [ ] On accept (valid): save to `settings.json` via `SettingsService`, re-register hotkey in `HotkeyService`
-  - [ ] On reject/close: restore previous hotkey in `HotkeyService`, set `IsRecording = false`
-  - [ ] Verify this `finally` cleanup fires for ALL close paths (Escape key, window close button, clicking outside if modal allows it) — not just the "Cancel button" path
-  - [ ] `finally` pattern: recording flag always reset, hotkey always re-registered
-- [ ] Minimum chord: ≥1 modifier + 1 non-modifier key
-- [ ] Port the complete blocklist validation (32 entries)
+- [x] Create `HotkeyDialogWindow.axaml` — themed frameless dialog for recording (non-modal, `Topmost="True"`)
+- [x] Create `HotkeyDialogViewModel` (Registered as Singleton in DI)
+  - [x] Implement `StartRecording()` / `Cleanup()` lifecycle to prevent Singleton startup trap (no global hook hijacking on app launch)
+  - [x] On open: set `HotkeyService.IsRecording = true` (flag-based dispatch naturally suspends old hotkey; no explicit unregister/restore needed)
+  - [x] Real-time tracking: implement two-layer `_liveChord` (updates instantly) and `_snapshotChord` (locks on valid chord release)
+  - [x] Display formatting: gracefully handle partial states and skip `VcUndefined` in `HotkeyChord.ToString()`
+  - [x] Live validation: enforce minimum chord (≥1 modifier + 1 non-modifier) and 32-entry `HotkeyBlocklist` in real-time
+  - [x] Live feedback: disable Save button and show inline amber/red warning instantly if chord is blocked
+  - [x] On accept (Save button): call `RegisterHotkey`, save to `settings.json` via `SettingsService`, fire `CloseRequested`
+  - [x] On cancel (Cancel button / bare Escape key): fire `CloseRequested` (explicitly checking bare Escape allows `Shift+Escape` as valid hotkey)
+  - [x] Ironclad cleanup: `AppManager` routes the `Window.Closed` event to `Cleanup()` (`IsRecording = false` + unsubscribe) guaranteeing teardown across ALL close paths (Cancel, Escape, Alt+F4)
+- [x] AppManager Orchestration: wire `TrayIconViewModel.ChangeHotkeyRequested` to show dialog with re-entrancy guard and `HideOverlay()` integration
 
 ## Phase 6: Velopack & Packaging
 
-- [ ] Add NuGet ref: `Velopack`
-- [ ] Call `VelopackApp.Build().Run()` at absolute start of `Program.cs`, before any Avalonia init
-- [ ] Create `UpdateService`
-  - [ ] `UpdateManager.GitHub("lsutorus/LaTeX-Inserter")` for update checks
-  - [ ] CONFIRM: should this point to `lsutorus/LaTeX-Inserter-CS` instead? Repo name elsewhere in this doc is `-CS`; decide deliberately before Phase 6, don't carry forward as a copy-paste artifact
-  - [ ] try/catch wrap: no internet / API down → show "Unable to check for updates" in dialog, no crash
-  - [ ] `Dispatcher.UIThread.Post` for all progress bar / status label updates during download
-- [ ] Wire tray "Check for Updates" → `UpdateService.CheckForUpdatesAsync()`
-  - [ ] Up to date → show `UpToDateDialog`
-  - [ ] Update available → show `UpdateDialog`
-  - [ ] Install clicked → `DownloadUpdatesAsync()` (progress via `Dispatcher.UIThread`) → `ApplyUpdatesAndRestart()`
-- [ ] Configure Velopack build pipeline
-  - [ ] `vpk pack` for Windows (NSIS or default Velopack installer format)
-  - [ ] `vpk upload github` to publish to GitHub Releases
-  - [ ] Release assets: Velopack bundle + SHA256
-- [ ] Create `.github/workflows/release.yml` — tag-triggered CI: build + Velopack pack + upload to GitHub Release
-- [ ] Test: downgrade `__version__` locally, run app, verify update UI appears (never push dummy releases)
+- [x] Add NuGet ref: `Velopack`
+- [x] Call `VelopackApp.Build().Run()` at absolute start of `Program.cs`, before any Avalonia init
+- [x] Create `UpdateService`
+  - [x] `UpdateManager.GitHub("lsutorus/LaTeX-Inserter")` for update checks
+  - [x] CONFIRM: should this point to `lsutorus/LaTeX-Inserter-CS` instead? Repo name elsewhere in this doc is `-CS`; decide deliberately before Phase 6, don't carry forward as a copy-paste artifact — **Confirmed: using `lsutorus/LaTeX-Inserter-CS`**
+  - [x] try/catch wrap: no internet / API down → show "Unable to check for updates" in dialog, no crash
+  - [x] `Dispatcher.UIThread.Post` for all progress bar / status label updates during download
+- [x] Wire tray "Check for Updates" → `UpdateService.CheckForUpdatesAsync()`
+  - [x] Up to date → show `UpToDateDialog`
+  - [x] Update available → show `UpdateDialog`
+  - [x] Install clicked → `DownloadUpdatesAsync()` (progress via `Dispatcher.UIThread`) → `ApplyUpdatesAndRestart()`
+- [x] Configure Velopack build pipeline
+  - [x] `vpk pack` for Windows (NSIS or default Velopack installer format)
+  - [x] `vpk upload github` to publish to GitHub Releases
+  - [x] Release assets: Velopack bundle + SHA256
+- [x] Create `.github/workflows/release.yml` — tag-triggered CI: build + Velopack pack + upload to GitHub Release
+- [ ] Test: push v0.0.1 tag → CI builds release → install app → bump to v0.0.2 → push tag → verify in-app updater detects and downloads update
 
 ## Phase 7: macOS Porting & Platform Parity
 
@@ -219,4 +218,4 @@ Rewrite of LaTeX Inserter from Python/PyQt5 to C#/.NET 10 with Avalonia UI.
 - **Canonical hotkey sort** — deterministic normalization: modifiers first (fixed order), then non-modifiers
 - **No shipping loose exes** — release assets = Velopack bundle + sha256 only
 - **No `.bak` file swap** — Velopack handles in-place update, no renames
-- **No dummy releases** — test update UI by downgrading local version, never push fake tags
+- **No dummy releases for unit tests** — don't push fake tags to test CI wiring; real end-to-end test flow is: push real release → install → bump version → push new tag → verify in-app updater detects and downloads update

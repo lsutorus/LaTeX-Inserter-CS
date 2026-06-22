@@ -22,6 +22,14 @@ public sealed partial class UpdateViewModel : ObservableObject
     [ObservableProperty]
     private string _statusText = string.Empty;
 
+    [ObservableProperty]
+    private bool _hasError;
+
+    public bool IsLaterVisible => !IsDownloading || HasError;
+
+    partial void OnIsDownloadingChanged(bool value) => OnPropertyChanged(nameof(IsLaterVisible));
+    partial void OnHasErrorChanged(bool value) => OnPropertyChanged(nameof(IsLaterVisible));
+
     public event EventHandler? InstallRequested;
     public event EventHandler? LaterRequested;
 

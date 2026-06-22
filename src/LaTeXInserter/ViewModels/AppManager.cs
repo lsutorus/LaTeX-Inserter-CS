@@ -17,6 +17,7 @@ public sealed class AppManager : IDisposable
     private readonly IWindowActivator _windowActivator;
     private readonly IClipboardProvider _clipboardProvider;
     private readonly IInputSimulatorService _inputSimulator;
+    private readonly IUpdateService _updateService;
     private readonly TrayIconViewModel _trayIconViewModel;
     private readonly OverlayViewModel _overlayViewModel;
     private readonly UpToDateViewModel _upToDateViewModel;
@@ -41,6 +42,7 @@ public sealed class AppManager : IDisposable
         IWindowActivator windowActivator,
         IClipboardProvider clipboardProvider,
         IInputSimulatorService inputSimulator,
+        IUpdateService updateService,
         TrayIconViewModel trayIconViewModel,
         OverlayViewModel overlayViewModel,
         UpToDateViewModel upToDateViewModel,
@@ -53,6 +55,7 @@ public sealed class AppManager : IDisposable
         _windowActivator = windowActivator;
         _clipboardProvider = clipboardProvider;
         _inputSimulator = inputSimulator;
+        _updateService = updateService;
         _trayIconViewModel = trayIconViewModel;
         _overlayViewModel = overlayViewModel;
         _upToDateViewModel = upToDateViewModel;
@@ -90,6 +93,7 @@ public sealed class AppManager : IDisposable
             _trayIconViewModel.ShowOverlayRequested += OnShowOverlayRequested;
             _trayIconViewModel.ChangeHotkeyRequested += OnChangeHotkeyRequested;
             _trayIconViewModel.CheckForUpdatesRequested += OnCheckForUpdatesRequested;
+            _updateViewModel.InstallRequested += OnInstallRequested;
             _trayIconViewModel.QuitRequested += OnQuitRequested;
             _overlayViewModel.SubmitRequested += OnSubmitRequested;
             _overlayViewModel.HideRequested += OnHideRequested;
@@ -106,7 +110,64 @@ public sealed class AppManager : IDisposable
 
     private void OnHotkeyPressed(object? sender, HotkeyChord _) => ToggleOverlay();
     private void OnShowOverlayRequested(object? sender, EventArgs _) => ToggleOverlay();
-    private void OnCheckForUpdatesRequested(object? sender, EventArgs _) => ShowUpToDateDialog();
+    private async void OnCheckForUpdatesRequested(object? sender, EventArgs _)
+    {
+        var version = typeof(AppManager).Assembly.GetName().Version?.ToString() ?? "unknown";
+        var result = await _updateService.CheckForUpdatesAsync();
+
+        if (result.IsError)
+        {
+            _upToDateViewModel.VersionText = "Unable to Check for Updates";
+            _upToDateViewModel.SubtitleText = result.ErrorMessage ?? "Unknown error";
+            ShowUpToDateDialog();
+        }
+        else if (result.IsUpdateAvailable)
+        {
+            _updateViewModel.HeadingText = $"Version {result.Version} is Available";
+            _updateViewModel.SubtitleText = $"Current: v{version}";
+            _updateViewModel.ChangelogText = result.ReleaseNotes ?? string.Empty;
+            _updateViewModel.IsDownloading = false;
+            _updateViewModel.DownloadProgress = 0;
+            _updateViewModel.StatusText = string.Empty;
+            _updateViewModel.HasError = false;
+            ShowUpdateDialog();
+        }
+        else
+        {
+            _upToDateViewModel.VersionText = "You are running the latest version";
+            _upToDateViewModel.SubtitleText = $"v{version}";
+            ShowUpToDateDialog();
+        }
+    }
+
+    private async void OnInstallRequested(object? sender, EventArgs _)
+    {
+        if (_updateViewModel.IsDownloading) return;
+
+        _updateViewModel.IsDownloading = true;
+        _updateViewModel.HasError = false;
+        _updateViewModel.StatusText = "Downloading update...";
+
+        try
+        {
+            var progress = new Progress<int>(p =>
+            {
+                _updateViewModel.DownloadProgress = p;
+            });
+
+            await _updateService.DownloadUpdatesAsync(progress);
+
+            _updateViewModel.StatusText = "Installing and restarting...";
+            _updateService.ApplyUpdatesAndRestart();
+        }
+        catch (Exception ex)
+        {
+            _updateViewModel.IsDownloading = false;
+            _updateViewModel.HasError = true;
+            _updateViewModel.StatusText = $"Download failed: {ex.Message}";
+        }
+    }
+
     private void OnQuitRequested(object? sender, EventArgs _) => Shutdown();
     private void OnHideRequested(object? sender, EventArgs _) => HideOverlay();
 
@@ -272,6 +333,7 @@ public sealed class AppManager : IDisposable
             _trayIconViewModel.QuitRequested -= OnQuitRequested;
             _overlayViewModel.SubmitRequested -= OnSubmitRequested;
             _overlayViewModel.HideRequested -= OnHideRequested;
+            _updateViewModel.InstallRequested -= OnInstallRequested;
             _hotkeyService.Dispose();
         }
 

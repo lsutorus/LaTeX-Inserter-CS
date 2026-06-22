@@ -6,6 +6,7 @@ using LaTeXInserter.Platform.Windows;
 using LaTeXInserter.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using SharpHook;
+using Velopack;
 
 namespace LaTeXInserter;
 
@@ -14,7 +15,7 @@ internal static class Program
     [STAThread]
     public static void Main(string[] args)
     {
-        // VelopackApp.Build().Run() — Phase 6 placeholder (must be first line)
+        VelopackApp.Build().Run();
 
         var services = new ServiceCollection();
         ConfigureServices(services);
@@ -52,6 +53,9 @@ internal static class Program
 
         // Phase 5 — hotkey dialog
         services.AddSingleton<HotkeyDialogViewModel>();
+
+        // Phase 6 — updates
+        services.AddSingleton<IUpdateService, UpdateService>();
 
         services.AddSingleton<AppManager>();
     }
