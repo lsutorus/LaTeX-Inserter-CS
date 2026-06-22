@@ -20,7 +20,7 @@ Rewrite of LaTeX Inserter from Python/PyQt5 to C#/.NET 10 with Avalonia UI.
 | 12 | DI | Microsoft.Extensions.DependencyInjection, strict constructor injection | .NET standard, AOT-compatible, no service locator |
 | 13 | View/VM wiring | Resolve VMs at composition root, assign to `DataContext` | No service locator in views |
 | 14 | Autocomplete | TextBox + Popup + ListBox (IntelliSense pattern) | `AutoCompleteBox` risks replacing prefix text in multi-command input |
-| 15 | Autocomplete keys | Tab = commit autocomplete, Enter = commit autocomplete OR submit for paste | Prefix text preserved; dual Enter behavior |
+| 15 | Autocomplete keys | Tab = commit autocomplete only, Enter = always submit for paste (never commits autocomplete) | Prefix text preserved; Enter previously had dual behavior (commit-or-submit), which caused Enter to consume a fully-typed command as an autocomplete selection instead of submitting — fixed during Phase 4 debugging |
 | 16 | Hotkey recording | Single hook, flag-based dispatch | No hook teardown; recording flag switches callback behavior |
 
 ---
@@ -122,9 +122,8 @@ Rewrite of LaTeX Inserter from Python/PyQt5 to C#/.NET 10 with Avalonia UI.
 - [x] Focus-stealing: call `IWindowActivator.Activate()` on show (Win32 `AttachThreadInput` pattern)
 - [x] Keyboard routing in overlay:
   - [x] Escape → hide window
-  - [x] Tab (popup open) → commit autocomplete, preserve prefix
-  - [x] Enter (popup open) → commit autocomplete, preserve prefix
-  - [x] Enter (popup closed) → convert → clipboard → hide → activate previous window → simulate paste
+  - [x] Tab (popup open) → commit autocomplete, preserve prefix, move caret to end
+  - [x] Enter (always, regardless of popup state) → set clipboard (while window visible) → restore focus → hide → simulate paste keystroke
 - [x] Create `UpToDateDialog.axaml` — port themed frameless dialog
   - [x] Bold heading "You are running the latest version"
   - [x] Subtitle with current version
@@ -141,11 +140,13 @@ Rewrite of LaTeX Inserter from Python/PyQt5 to C#/.NET 10 with Avalonia UI.
 - [ ] Create `HotkeyDialogWindow.axaml` — themed frameless dialog for recording
 - [ ] Create `HotkeyDialogViewModel`
   - [ ] On open: set `HotkeyService.IsRecording = true` (flag-based dispatch)
+  - [ ] Reuse `HotkeyService.IsRecording` directly — do not implement a second/parallel recording-flag mechanism in the dialog VM
   - [ ] Accumulate key presses into candidate `HotkeyChord`
   - [ ] Show recorded keys in real-time
   - [ ] On accept: validate against `HotkeyBlocklist`; if blocked, show warning + re-record
   - [ ] On accept (valid): save to `settings.json` via `SettingsService`, re-register hotkey in `HotkeyService`
   - [ ] On reject/close: restore previous hotkey in `HotkeyService`, set `IsRecording = false`
+  - [ ] Verify this `finally` cleanup fires for ALL close paths (Escape key, window close button, clicking outside if modal allows it) — not just the "Cancel button" path
   - [ ] `finally` pattern: recording flag always reset, hotkey always re-registered
 - [ ] Minimum chord: ≥1 modifier + 1 non-modifier key
 - [ ] Port the complete blocklist validation (32 entries)
@@ -156,6 +157,7 @@ Rewrite of LaTeX Inserter from Python/PyQt5 to C#/.NET 10 with Avalonia UI.
 - [ ] Call `VelopackApp.Build().Run()` at absolute start of `Program.cs`, before any Avalonia init
 - [ ] Create `UpdateService`
   - [ ] `UpdateManager.GitHub("lsutorus/LaTeX-Inserter")` for update checks
+  - [ ] CONFIRM: should this point to `lsutorus/LaTeX-Inserter-CS` instead? Repo name elsewhere in this doc is `-CS`; decide deliberately before Phase 6, don't carry forward as a copy-paste artifact
   - [ ] try/catch wrap: no internet / API down → show "Unable to check for updates" in dialog, no crash
   - [ ] `Dispatcher.UIThread.Post` for all progress bar / status label updates during download
 - [ ] Wire tray "Check for Updates" → `UpdateService.CheckForUpdatesAsync()`
@@ -168,6 +170,22 @@ Rewrite of LaTeX Inserter from Python/PyQt5 to C#/.NET 10 with Avalonia UI.
   - [ ] Release assets: Velopack bundle + SHA256
 - [ ] Create `.github/workflows/release.yml` — tag-triggered CI: build + Velopack pack + upload to GitHub Release
 - [ ] Test: downgrade `__version__` locally, run app, verify update UI appears (never push dummy releases)
+
+## Phase 7: macOS Porting & Platform Parity
+
+- [ ] Create `MacosWindowActivator : IWindowActivator`
+  - [ ] Implement native macOS window focus capture on hotkey trigger
+  - [ ] Implement native focus restoration back to the previously active application bundle before pasting
+- [ ] Create `MacosStartupRegistrar : IStartupRegistrar`
+  - [ ] Implement programmatic generation of a standard launch agent `.plist` file
+  - [ ] Deploy and manage the `.plist` file at `~/Library/LaunchAgents/` to run on user login
+- [ ] Implement native macOS cursor tracking
+  - [ ] Add `[LibraryImport]` bindings targeting the macOS CoreGraphics framework (e.g., `CGEventSource` or `CGEvent` APIs)
+  - [ ] Replace the center-screen fallback in `OverlayWindow.axaml.cs` with the native coordinate lookup
+- [ ] Configure conditional DI registration in `Program.cs`
+  - [ ] Register `IWindowActivator` and `IStartupRegistrar` dynamically using `RuntimeInformation.IsOSPlatform` checks on startup
+- [ ] Verify macOS Security & Privacy setup
+  - [ ] Document the necessary macOS permission prompts (Accessibility and Input Monitoring) required for SharpHook to capture global hotkeys and simulate events
 
 ---
 

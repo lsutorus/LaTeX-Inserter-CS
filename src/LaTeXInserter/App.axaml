@@ -36,6 +36,17 @@
             <Setter Property="Padding" Value="16,8" />
             <Setter Property="MinWidth" Value="80" />
         </Style>
+
+        <!-- Hotkey dialog chord display states -->
+        <Style Selector="TextBlock.recording-only">
+            <Setter Property="Foreground" Value="#666666" />
+        </Style>
+        <Style Selector="TextBlock.valid">
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        <Style Selector="TextBlock.blocked">
+            <Setter Property="Foreground" Value="#FFB74D" />
+        </Style>
     </Application.Styles>
 
     <TrayIcon.Icons>

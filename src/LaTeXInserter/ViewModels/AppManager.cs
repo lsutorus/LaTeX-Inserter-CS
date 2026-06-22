@@ -21,10 +21,12 @@ public sealed class AppManager : IDisposable
     private readonly OverlayViewModel _overlayViewModel;
     private readonly UpToDateViewModel _upToDateViewModel;
     private readonly UpdateViewModel _updateViewModel;
+    private readonly HotkeyDialogViewModel _hotkeyDialogViewModel;
 
     private OverlayWindow? _overlayWindow;
     private UpToDateDialog? _activeUpToDateDialog;
     private UpdateDialog? _activeUpdateDialog;
+    private HotkeyDialogWindow? _activeHotkeyDialog;
     private bool _isToggling;
     private bool _isShutdown;
     private bool _isDisposed;
@@ -42,7 +44,8 @@ public sealed class AppManager : IDisposable
         TrayIconViewModel trayIconViewModel,
         OverlayViewModel overlayViewModel,
         UpToDateViewModel upToDateViewModel,
-        UpdateViewModel updateViewModel)
+        UpdateViewModel updateViewModel,
+        HotkeyDialogViewModel hotkeyDialogViewModel)
     {
         _settingsService = settingsService;
         _hotkeyService = hotkeyService;
@@ -54,6 +57,7 @@ public sealed class AppManager : IDisposable
         _overlayViewModel = overlayViewModel;
         _upToDateViewModel = upToDateViewModel;
         _updateViewModel = updateViewModel;
+        _hotkeyDialogViewModel = hotkeyDialogViewModel;
     }
 
     public async Task InitializeAsync()
@@ -84,6 +88,7 @@ public sealed class AppManager : IDisposable
             // 6. Wire events
             _hotkeyService.HotkeyPressed += OnHotkeyPressed;
             _trayIconViewModel.ShowOverlayRequested += OnShowOverlayRequested;
+            _trayIconViewModel.ChangeHotkeyRequested += OnChangeHotkeyRequested;
             _trayIconViewModel.CheckForUpdatesRequested += OnCheckForUpdatesRequested;
             _trayIconViewModel.QuitRequested += OnQuitRequested;
             _overlayViewModel.SubmitRequested += OnSubmitRequested;
@@ -104,6 +109,42 @@ public sealed class AppManager : IDisposable
     private void OnCheckForUpdatesRequested(object? sender, EventArgs _) => ShowUpToDateDialog();
     private void OnQuitRequested(object? sender, EventArgs _) => Shutdown();
     private void OnHideRequested(object? sender, EventArgs _) => HideOverlay();
+
+    private void OnChangeHotkeyRequested(object? sender, EventArgs _)
+    {
+        if (_activeHotkeyDialog is not null)
+        {
+            _activeHotkeyDialog.Activate();
+            return;
+        }
+
+        if (IsOverlayVisible) HideOverlay();
+
+        Dispatcher.UIThread.Post(() =>
+        {
+            _hotkeyDialogViewModel.StartRecording();
+
+            _activeHotkeyDialog = new HotkeyDialogWindow
+            {
+                DataContext = _hotkeyDialogViewModel
+            };
+
+            _activeHotkeyDialog.Closed += (_, _) =>
+            {
+                _hotkeyDialogViewModel.Cleanup();
+                _hotkeyDialogViewModel.CloseRequested -= OnDialogCloseRequested;
+                _activeHotkeyDialog = null;
+            };
+
+            _hotkeyDialogViewModel.CloseRequested += OnDialogCloseRequested;
+            _activeHotkeyDialog.Show();
+        });
+    }
+
+    private void OnDialogCloseRequested(object? sender, EventArgs _)
+    {
+        _activeHotkeyDialog?.Close();
+    }
 
     private async void OnSubmitRequested(object? sender, string convertedText)
     {
@@ -226,6 +267,7 @@ public sealed class AppManager : IDisposable
         {
             _hotkeyService.HotkeyPressed -= OnHotkeyPressed;
             _trayIconViewModel.ShowOverlayRequested -= OnShowOverlayRequested;
+            _trayIconViewModel.ChangeHotkeyRequested -= OnChangeHotkeyRequested;
             _trayIconViewModel.CheckForUpdatesRequested -= OnCheckForUpdatesRequested;
             _trayIconViewModel.QuitRequested -= OnQuitRequested;
             _overlayViewModel.SubmitRequested -= OnSubmitRequested;
@@ -235,5 +277,6 @@ public sealed class AppManager : IDisposable
 
         _overlayWindow?.Close();
         _overlayWindow = null;
+        _activeHotkeyDialog?.Close();
     }
 }

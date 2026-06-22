@@ -50,6 +50,9 @@ internal static class Program
         services.AddSingleton<UpToDateViewModel>();
         services.AddSingleton<UpdateViewModel>();
 
+        // Phase 5 — hotkey dialog
+        services.AddSingleton<HotkeyDialogViewModel>();
+
         services.AddSingleton<AppManager>();
     }
 

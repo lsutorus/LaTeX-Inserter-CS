@@ -27,7 +27,7 @@ public readonly record struct HotkeyChord(
         if ((Modifiers & ModifierMask.Alt) != 0) parts.Add("Alt");
         if ((Modifiers & ModifierMask.Shift) != 0) parts.Add("Shift");
         if ((Modifiers & ModifierMask.Windows) != 0) parts.Add("Win");
-        parts.Add(FormatKeyCode(TriggerKey));
+        if (TriggerKey != KeyCode.VcUndefined) parts.Add(FormatKeyCode(TriggerKey));
         return string.Join("+", parts);
     }
 

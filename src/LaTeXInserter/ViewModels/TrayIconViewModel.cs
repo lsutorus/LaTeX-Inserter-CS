@@ -27,6 +27,7 @@ public sealed partial class TrayIconViewModel
     public NativeMenu TrayMenu { get; }
 
     public event EventHandler? ShowOverlayRequested;
+    public event EventHandler? ChangeHotkeyRequested;
     public event EventHandler? CheckForUpdatesRequested;
     public event EventHandler? QuitRequested;
 
@@ -127,10 +128,7 @@ public sealed partial class TrayIconViewModel
     private void ReloadMappings() => _latexConverter.Reload();
 
     [RelayCommand]
-    private void ChangeHotkey()
-    {
-        // Phase 5 placeholder — intentionally empty to avoid unhandled exception
-    }
+    private void ChangeHotkey() => ChangeHotkeyRequested?.Invoke(this, EventArgs.Empty);
 
     [RelayCommand]
     private async Task ToggleStartupAsync()

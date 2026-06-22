@@ -1,0 +1,42 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:LaTeXInserter.ViewModels"
+        x:Class="LaTeXInserter.Views.HotkeyDialogWindow"
+        x:DataType="vm:HotkeyDialogViewModel"
+        Title="Change Hotkey"
+        WindowDecorations="None"
+        ShowInTaskbar="True"
+        WindowStartupLocation="CenterScreen"
+        Topmost="True"
+        Width="320" SizeToContent="Height"
+        Background="#2b2b2b">
+
+    <StackPanel Margin="24" Spacing="12">
+        <TextBlock Text="Press your desired hotkey combination…"
+                   FontSize="13" Foreground="#aaaaaa"
+                   HorizontalAlignment="Center"
+                   TextAlignment="Center" TextWrapping="Wrap" />
+
+        <TextBlock Text="{Binding ChordDisplay}"
+                   FontWeight="Bold" FontSize="16"
+                   HorizontalAlignment="Center"
+                   Classes.blocked="{Binding IsBlocked}"
+                   Classes.valid="{Binding IsValidAndNotBlocked}"
+                   Classes.recording-only="{Binding IsRecordingOnly}" />
+
+        <TextBlock Text="This shortcut is reserved by the system"
+                   FontSize="12" Foreground="#ff5252"
+                   HorizontalAlignment="Center"
+                   TextAlignment="Center" TextWrapping="Wrap"
+                   IsVisible="{Binding IsBlocked}" />
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="12">
+            <Button Content="Cancel"
+                    Command="{Binding CancelCommand}"
+                    Classes="dialog-later" />
+            <Button Content="Save"
+                    Command="{Binding SaveCommand}"
+                    Classes="dialog-install" />
+        </StackPanel>
+    </StackPanel>
+</Window>
