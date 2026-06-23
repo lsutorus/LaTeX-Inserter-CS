@@ -34,17 +34,20 @@ jobs:
           vpk pack --packId LaTeXInserter --packVersion $version --packDir publish --mainExe LaTeXInserter.exe
 
       - name: Upload to GitHub Releases
+        shell: pwsh
         run: |
-          vpk upload github --repoUrl https://github.com/lsutorus/LaTeX-Inserter-CS --token ${{ secrets.GITHUB_TOKEN }} --releaseName ${{ github.ref_name }}
+          $version = "${{ github.ref_name }}" -replace '^v',''
+          vpk upload github --repoUrl https://github.com/lsutorus/LaTeX-Inserter-CS --token ${{ secrets.GITHUB_TOKEN }} --releaseName "v$version"
 
       - name: Generate SHA256 for Setup.exe
         shell: pwsh
         run: |
+          $tag = "${{ github.ref_name }}" -replace '^v',''
           $setup = Get-ChildItem -Path . -Filter "*Setup.exe" -Recurse | Select-Object -First 1
           if ($setup) {
             $hash = (Get-FileHash -Path $setup.FullName -Algorithm SHA256).Hash
             "$hash  $($setup.Name)" | Out-File -FilePath "$($setup.Name).sha256" -Encoding utf8NoBOM
-            gh release upload ${{ github.ref_name }} "$($setup.Name).sha256" --repo lsutorus/LaTeX-Inserter-CS
+            gh release upload $tag "$($setup.Name).sha256" --repo lsutorus/LaTeX-Inserter-CS
           }
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
