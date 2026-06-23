@@ -12,7 +12,7 @@ Cross-platform system-tray utility. Configurable hotkey (default Ctrl+Alt+M) ope
 - **UI**: Avalonia UI (headless, borderless floating popup, TrayIcon)
 - **MVVM**: CommunityToolkit.Mvvm (source-gen `ObservableObject`, `RelayCommand`)
 - **Hotkeys**: SharpHook (global hooks + input simulation)
-- **Updater**: Velopack (GitHub Releases backend)
+- **Updater**: Velopack 1.2.0 (GitHub Releases backend, `GithubSource`, 10s timeout on check)
 - **DI**: Microsoft.Extensions.DependencyInjection (strict constructor injection)
 - **Data**: System.Text.Json with source generators (`JsonSerializerContext`)
 - **P/Invoke**: `[LibraryImport]` only (no legacy `[DllImport]`)
@@ -29,9 +29,11 @@ Requires admin on Windows (keyboard hooks require elevation).
 ## Versioning & Release
 
 - Version in `LaTeXInserter.csproj` as `<Version>x.y.z</Version>` (semver)
-- Tag format: `vx.y.z`
-- Push tag → GitHub Actions: build + Velopack pack + upload to GitHub Release
+- Tag format: `vx.y.z` (push tag → GitHub Actions CI)
+- Velopack creates GitHub releases with tag name WITHOUT `v` prefix (e.g. `0.0.5` not `v0.0.5`)
 - Release assets: Velopack bundle + SHA256
+- Draft releases auto-created by `vpk upload`; publish manually via `gh release edit <tag> --draft=false`
+- Current version: 0.0.5
 
 ## Architecture & Documentation
 
@@ -51,6 +53,7 @@ Requires admin on Windows (keyboard hooks require elevation).
 - **Custom mappings**: Plain text `\command char` at AppData, NOT JSON (user-editable by design)
 - **Default commands**: `Commands.json` embedded resource, loaded via source-gen deserializer
 - **Autocomplete**: TextBox + Popup + ListBox (IntelliSense pattern), NOT AutoCompleteBox
+- **Update check UX**: Immediate dialog with indeterminate progress bar on "Check for Updates" click; content swaps to result once check completes (up-to-date / error / update available)
 
 ## Anti-patterns
 

@@ -155,20 +155,21 @@ Rewrite of LaTeX Inserter from Python/PyQt5 to C#/.NET 10 with Avalonia UI.
 - [x] Add NuGet ref: `Velopack`
 - [x] Call `VelopackApp.Build().Run()` at absolute start of `Program.cs`, before any Avalonia init
 - [x] Create `UpdateService`
-  - [x] `UpdateManager.GitHub("lsutorus/LaTeX-Inserter")` for update checks
-  - [x] CONFIRM: should this point to `lsutorus/LaTeX-Inserter-CS` instead? Repo name elsewhere in this doc is `-CS`; decide deliberately before Phase 6, don't carry forward as a copy-paste artifact — **Confirmed: using `lsutorus/LaTeX-Inserter-CS`**
+  - [x] `UpdateManager` with `GithubSource("https://github.com/lsutorus/LaTeX-Inserter-CS")` for update checks
+  - [x] 10-second timeout wrapper on `CheckForUpdatesAsync` (Velopack has no configurable timeout — issue #936; default ~64s)
   - [x] try/catch wrap: no internet / API down → show "Unable to check for updates" in dialog, no crash
   - [x] `Dispatcher.UIThread.Post` for all progress bar / status label updates during download
+  - [x] Immediate loading indicator: show `UpToDateDialog` with indeterminate ProgressBar on check start, swap content on result
 - [x] Wire tray "Check for Updates" → `UpdateService.CheckForUpdatesAsync()`
   - [x] Up to date → show `UpToDateDialog`
   - [x] Update available → show `UpdateDialog`
   - [x] Install clicked → `DownloadUpdatesAsync()` (progress via `Dispatcher.UIThread`) → `ApplyUpdatesAndRestart()`
 - [x] Configure Velopack build pipeline
-  - [x] `vpk pack` for Windows (NSIS or default Velopack installer format)
-  - [x] `vpk upload github` to publish to GitHub Releases
+  - [x] `vpk pack --packId LaTeXInserter --packVersion $version --packDir publish --mainExe LaTeXInserter.exe --icon publish/LaTeX-Inserter-icon-final.ico` (NOT `--format nsis`, NOT `--packIcon`)
+  - [x] `vpk upload github` to publish to GitHub Releases (creates draft)
   - [x] Release assets: Velopack bundle + SHA256
 - [x] Create `.github/workflows/release.yml` — tag-triggered CI: build + Velopack pack + upload to GitHub Release
-- [ ] Test: push v0.0.1 tag → CI builds release → install app → bump to v0.0.2 → push tag → verify in-app updater detects and downloads update
+- [x] Test: push v0.0.1 tag → CI builds release → install app → bump to v0.0.2 → push tag → verify in-app updater detects and downloads update
 
 ## Phase 7: macOS Porting & Platform Parity
 
@@ -219,3 +220,8 @@ Rewrite of LaTeX Inserter from Python/PyQt5 to C#/.NET 10 with Avalonia UI.
 - **No shipping loose exes** — release assets = Velopack bundle + sha256 only
 - **No `.bak` file swap** — Velopack handles in-place update, no renames
 - **No dummy releases for unit tests** — don't push fake tags to test CI wiring; real end-to-end test flow is: push real release → install → bump version → push new tag → verify in-app updater detects and downloads update
+- **No `v` prefix in vpk commands** — `vpk pack --packVersion` and `vpk upload` and `gh release upload` all use bare semver (`0.0.5`), never `v0.0.5`. Velopack creates releases with bare tag; git tag uses `v` prefix.
+- **No `--format nsis`** — Velopack doesn't use NSIS; generates its own Setup.exe by default
+- **No `--packIcon` flag** — correct Velopack flag is `--icon`; icon file must be copied into publish dir before `vpk pack`
+- **VelopackAsset has `NotesMarkdown`/`NotesHTML`** — NOT `ReleaseNotes`; use `result.TargetFullRelease.NotesMarkdown`
+- **Velopack timeout** — no configurable HTTP timeout (issue #936); wrap `CheckForUpdatesAsync` with `Task.WhenAny` + `CancellationTokenSource` for user-friendly timeout
