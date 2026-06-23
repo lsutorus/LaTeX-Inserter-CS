@@ -6,6 +6,7 @@ using Avalonia.Interactivity;
 using Avalonia.Threading;
 using LaTeXInserter.Abstractions;
 using LaTeXInserter.Helpers;
+using LaTeXInserter.Models;
 using LaTeXInserter.Platform.Windows;
 using LaTeXInserter.ViewModels;
 
@@ -48,7 +49,26 @@ public partial class OverlayWindow : Window
             }
 
             Dispatcher.UIThread.Post(() => InputTextBox.Focus(), DispatcherPriority.Input);
+
+            // Wire VM property changes for accent resource swap
+            if (_vm is not null)
+            {
+                _vm.PropertyChanged -= OnVmPropertyChanged;
+                _vm.PropertyChanged += OnVmPropertyChanged;
+            }
         }
+    }
+
+    private void OnVmPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(OverlayViewModel.AccentBackgroundBrush))
+            UpdateAccentResource();
+    }
+
+    private void UpdateAccentResource()
+    {
+        if (_vm is not null)
+            AutocompleteListBox.Resources["AccentBgBrush"] = _vm.AccentBackgroundBrush;
     }
 
     private void PositionOverlay()
@@ -95,9 +115,7 @@ public partial class OverlayWindow : Window
             case Key.Tab:
                 if (_vm.IsAutocompleteOpen)
                 {
-                    var selected = _vm.GetSelectedAutocompleteItem();
-                    if (selected is not null)
-                        _vm.CommitAutocomplete(selected);
+                    _vm.CommitAutocomplete(_vm.SelectedAutocompleteItem);
                     e.Handled = true;
                     Dispatcher.UIThread.Post(() =>
                         InputTextBox.CaretIndex = InputTextBox.Text?.Length ?? 0);

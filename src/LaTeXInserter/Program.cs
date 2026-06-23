@@ -54,6 +54,9 @@ internal static class Program
         // Phase 5 — hotkey dialog
         services.AddSingleton<HotkeyDialogViewModel>();
 
+        // Settings
+        services.AddSingleton<SettingsViewModel>();
+
         // Phase 6 — updates
         services.AddSingleton<IUpdateService, UpdateService>();
 

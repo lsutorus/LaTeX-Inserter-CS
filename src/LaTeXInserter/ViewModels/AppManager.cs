@@ -23,11 +23,13 @@ public sealed class AppManager : IDisposable
     private readonly UpToDateViewModel _upToDateViewModel;
     private readonly UpdateViewModel _updateViewModel;
     private readonly HotkeyDialogViewModel _hotkeyDialogViewModel;
+    private readonly SettingsViewModel _settingsViewModel;
 
     private OverlayWindow? _overlayWindow;
     private UpToDateDialog? _activeUpToDateDialog;
     private UpdateDialog? _activeUpdateDialog;
     private HotkeyDialogWindow? _activeHotkeyDialog;
+    private SettingsWindow? _activeSettingsWindow;
     private bool _isToggling;
     private bool _isShutdown;
     private bool _isDisposed;
@@ -47,7 +49,8 @@ public sealed class AppManager : IDisposable
         OverlayViewModel overlayViewModel,
         UpToDateViewModel upToDateViewModel,
         UpdateViewModel updateViewModel,
-        HotkeyDialogViewModel hotkeyDialogViewModel)
+        HotkeyDialogViewModel hotkeyDialogViewModel,
+        SettingsViewModel settingsViewModel)
     {
         _settingsService = settingsService;
         _hotkeyService = hotkeyService;
@@ -61,6 +64,7 @@ public sealed class AppManager : IDisposable
         _upToDateViewModel = upToDateViewModel;
         _updateViewModel = updateViewModel;
         _hotkeyDialogViewModel = hotkeyDialogViewModel;
+        _settingsViewModel = settingsViewModel;
     }
 
     public async Task InitializeAsync()
@@ -91,12 +95,15 @@ public sealed class AppManager : IDisposable
             // 6. Wire events
             _hotkeyService.HotkeyPressed += OnHotkeyPressed;
             _trayIconViewModel.ShowOverlayRequested += OnShowOverlayRequested;
+            _trayIconViewModel.SettingsRequested += OnSettingsRequested;
             _trayIconViewModel.ChangeHotkeyRequested += OnChangeHotkeyRequested;
             _trayIconViewModel.CheckForUpdatesRequested += OnCheckForUpdatesRequested;
             _updateViewModel.InstallRequested += OnInstallRequested;
             _trayIconViewModel.QuitRequested += OnQuitRequested;
             _overlayViewModel.SubmitRequested += OnSubmitRequested;
             _overlayViewModel.HideRequested += OnHideRequested;
+            _settingsViewModel.SettingsSaved += OnSettingsSaved;
+            _settingsViewModel.CloseRequested += OnSettingsCloseRequested;
 
             // Set version text on dialog VM
             var version = typeof(AppManager).Assembly.GetName().Version?.ToString() ?? "unknown";
@@ -214,6 +221,36 @@ public sealed class AppManager : IDisposable
     private void OnDialogCloseRequested(object? sender, EventArgs _)
     {
         _activeHotkeyDialog?.Close();
+    }
+
+    private void OnSettingsRequested(object? sender, EventArgs _)
+    {
+        if (_activeSettingsWindow is not null)
+        {
+            _activeSettingsWindow.Activate();
+            return;
+        }
+
+        Dispatcher.UIThread.Post(() =>
+        {
+            _activeSettingsWindow = new SettingsWindow
+            {
+                DataContext = _settingsViewModel
+            };
+
+            _activeSettingsWindow.Closed += (_, _) => _activeSettingsWindow = null;
+            _activeSettingsWindow.Show();
+        });
+    }
+
+    private void OnSettingsSaved(object? sender, AppSettings settings)
+    {
+        _overlayViewModel.ApplySettings(settings);
+    }
+
+    private void OnSettingsCloseRequested(object? sender, EventArgs _)
+    {
+        _activeSettingsWindow?.Close();
     }
 
     private async void OnSubmitRequested(object? sender, string convertedText)
@@ -337,17 +374,21 @@ public sealed class AppManager : IDisposable
         {
             _hotkeyService.HotkeyPressed -= OnHotkeyPressed;
             _trayIconViewModel.ShowOverlayRequested -= OnShowOverlayRequested;
+            _trayIconViewModel.SettingsRequested -= OnSettingsRequested;
             _trayIconViewModel.ChangeHotkeyRequested -= OnChangeHotkeyRequested;
             _trayIconViewModel.CheckForUpdatesRequested -= OnCheckForUpdatesRequested;
             _trayIconViewModel.QuitRequested -= OnQuitRequested;
             _overlayViewModel.SubmitRequested -= OnSubmitRequested;
             _overlayViewModel.HideRequested -= OnHideRequested;
             _updateViewModel.InstallRequested -= OnInstallRequested;
+            _settingsViewModel.SettingsSaved -= OnSettingsSaved;
+            _settingsViewModel.CloseRequested -= OnSettingsCloseRequested;
             _hotkeyService.Dispose();
         }
 
         _overlayWindow?.Close();
         _overlayWindow = null;
         _activeHotkeyDialog?.Close();
+        _activeSettingsWindow?.Close();
     }
 }

@@ -1,0 +1,72 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:LaTeXInserter.ViewModels"
+        x:Class="LaTeXInserter.Views.SettingsWindow"
+        x:DataType="vm:SettingsViewModel"
+        Title="Settings"
+        SizeToContent="Height"
+        Width="350"
+        WindowStartupLocation="CenterScreen">
+
+    <ScrollViewer>
+        <StackPanel Margin="16" Spacing="16">
+
+            <!-- Appearance Section -->
+            <StackPanel Spacing="8">
+                <TextBlock Text="Appearance" FontWeight="SemiBold" FontSize="14" />
+
+                <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto">
+                    <TextBlock Grid.Row="0" Grid.Column="0"
+                               Text="Input Font Size" VerticalAlignment="Center" Margin="0,0,12,0" />
+                    <NumericUpDown Grid.Row="0" Grid.Column="1"
+                                   Value="{Binding InputFontSize}"
+                                   Minimum="12" Maximum="24" Increment="1" />
+
+                    <TextBlock Grid.Row="1" Grid.Column="0"
+                               Text="Preview Font Size" VerticalAlignment="Center" Margin="0,4,12,4" />
+                    <NumericUpDown Grid.Row="1" Grid.Column="1"
+                                   Value="{Binding PreviewFontSize}"
+                                   Minimum="12" Maximum="24" Increment="1" />
+
+                    <TextBlock Grid.Row="2" Grid.Column="0"
+                               Text="Accent Color" VerticalAlignment="Center" Margin="0,0,12,0" />
+                    <ItemsControl Grid.Row="2" Grid.Column="1"
+                                  ItemsSource="{x:Static vm:SettingsViewModel.AccentPalette}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Width="24" Height="24" Margin="2"
+                                        CornerRadius="4" Padding="0"
+                                        Background="{Binding}"
+                                        Click="OnSwatchClick" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Grid>
+            </StackPanel>
+
+            <Separator />
+
+            <!-- Behavior Section -->
+            <StackPanel Spacing="8">
+                <TextBlock Text="Behavior" FontWeight="SemiBold" FontSize="14" />
+
+                <CheckBox Content="Enable Autocomplete"
+                          IsChecked="{Binding AutocompleteEnabled}" />
+            </StackPanel>
+
+            <Separator />
+
+            <!-- Action Buttons -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                <Button Content="Cancel" Command="{Binding CancelCommand}" />
+                <Button Content="Save" Command="{Binding SaveCommand}" />
+            </StackPanel>
+
+        </StackPanel>
+    </ScrollViewer>
+</Window>

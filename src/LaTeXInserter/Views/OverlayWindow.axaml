@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:LaTeXInserter.ViewModels"
+        xmlns:models="using:LaTeXInserter.Models"
         x:Class="LaTeXInserter.Views.OverlayWindow"
         x:DataType="vm:OverlayViewModel"
         Title="LaTeX Inserter"
@@ -14,19 +15,15 @@
 
     <Window.Styles>
         <Style Selector="TextBox.overlay-input">
-            <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="Foreground" Value="White" />
             <Setter Property="CaretBrush" Value="White" />
-            <Setter Property="FontSize" Value="16" />
             <Setter Property="Padding" Value="8,6" />
         </Style>
         <Style Selector="TextBox.overlay-input:focus">
-            <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Background" Value="Transparent" />
         </Style>
         <Style Selector="TextBox.overlay-input:pointerover">
-            <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Background" Value="Transparent" />
         </Style>
     </Window.Styles>
@@ -34,12 +31,15 @@
     <StackPanel Margin="8">
         <TextBox x:Name="InputTextBox"
                  Classes="overlay-input"
-                 Text="{Binding InputText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                 Text="{Binding InputText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                 FontSize="{Binding InputFontSize}"
+                 BorderThickness="1"
+                 BorderBrush="{Binding AccentBrush}" />
 
-        <Border Height="24" VerticalAlignment="Center" Margin="8,2,8,4">
+        <Border MinHeight="24" VerticalAlignment="Center" Margin="8,2,8,4">
             <TextBlock Text="{Binding PreviewText}"
                        Foreground="#cccccc"
-                       FontSize="14"
+                       FontSize="{Binding PreviewFontSize}"
                        TextWrapping="NoWrap" />
         </Border>
 
@@ -52,10 +52,32 @@
                     CornerRadius="4" Padding="4" MaxHeight="200">
                 <ListBox x:Name="AutocompleteListBox"
                          ItemsSource="{Binding AutocompleteItems}"
-                         SelectedIndex="{Binding AutocompleteSelectedIndex}"
+                         SelectedItem="{Binding SelectedAutocompleteItem}"
                          Focusable="False"
-                         FontSize="13"
-                         Foreground="#cccccc" />
+                         FontSize="{Binding InputFontSize}"
+                         Foreground="#cccccc">
+                    <ListBox.Resources>
+                        <SolidColorBrush x:Key="AccentBgBrush" Color="#404040" Opacity="0.25" />
+                    </ListBox.Resources>
+                    <ListBox.Styles>
+                        <Style Selector="ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+                            <Setter Property="Background" Value="{DynamicResource AccentBgBrush}" />
+                        </Style>
+                    </ListBox.Styles>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="models:AutocompleteItem">
+                            <Grid ColumnDefinitions="*, Auto">
+                                <TextBlock Grid.Column="0"
+                                           Text="{Binding Command}"
+                                           VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding Unicode}"
+                                           Opacity="0.6"
+                                           VerticalAlignment="Center" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
             </Border>
         </Popup>
     </StackPanel>

@@ -15,6 +15,7 @@ public sealed partial class TrayIconViewModel
     private readonly IStartupRegistrar _startupRegistrar;
 
     private readonly NativeMenuItem _showHideOverlayItem;
+    private readonly NativeMenuItem _settingsItem;
     private readonly NativeMenuItem _editMappingsItem;
     private readonly NativeMenuItem _reloadMappingsItem;
     private readonly NativeMenuItem _changeHotkeyItem;
@@ -27,6 +28,7 @@ public sealed partial class TrayIconViewModel
     public NativeMenu TrayMenu { get; }
 
     public event EventHandler? ShowOverlayRequested;
+    public event EventHandler? SettingsRequested;
     public event EventHandler? ChangeHotkeyRequested;
     public event EventHandler? CheckForUpdatesRequested;
     public event EventHandler? QuitRequested;
@@ -43,6 +45,7 @@ public sealed partial class TrayIconViewModel
         _startupRegistrar = startupRegistrar;
 
         _showHideOverlayItem = new NativeMenuItem($"Show/Hide Overlay ({hotkeyService.CurrentHotkey})");
+        _settingsItem = new NativeMenuItem("Settings...");
         _editMappingsItem = new NativeMenuItem("Edit Custom Mappings");
         _reloadMappingsItem = new NativeMenuItem("Reload Custom Mappings");
         _changeHotkeyItem = new NativeMenuItem("Change Hotkey...");
@@ -55,6 +58,7 @@ public sealed partial class TrayIconViewModel
         _quitItem = new NativeMenuItem("Quit");
 
         _showHideOverlayItem.Command = ShowHideOverlayCommand;
+        _settingsItem.Command = SettingsCommand;
         _editMappingsItem.Command = EditMappingsCommand;
         _reloadMappingsItem.Command = ReloadMappingsCommand;
         _changeHotkeyItem.Command = ChangeHotkeyCommand;
@@ -66,11 +70,10 @@ public sealed partial class TrayIconViewModel
         {
             _showHideOverlayItem,
             new NativeMenuItemSeparator(),
+            _settingsItem,
             _editMappingsItem,
             _reloadMappingsItem,
-            new NativeMenuItemSeparator(),
             _changeHotkeyItem,
-            new NativeMenuItemSeparator(),
             _startupToggleItem,
             new NativeMenuItemSeparator(),
             _checkForUpdatesItem,
@@ -116,6 +119,9 @@ public sealed partial class TrayIconViewModel
 
     [RelayCommand]
     private void ShowHideOverlay() => ShowOverlayRequested?.Invoke(this, EventArgs.Empty);
+
+    [RelayCommand]
+    private void Settings() => SettingsRequested?.Invoke(this, EventArgs.Empty);
 
     [RelayCommand]
     private void EditMappings()

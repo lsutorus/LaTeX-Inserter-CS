@@ -1,13 +1,16 @@
 using System.Collections.ObjectModel;
 using System.Text.RegularExpressions;
+using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using LaTeXInserter.Abstractions;
+using LaTeXInserter.Models;
 
 namespace LaTeXInserter.ViewModels;
 
 public sealed partial class OverlayViewModel : ObservableObject
 {
     private readonly ILatexConverterService _converter;
+    private readonly ISettingsService _settingsService;
 
     private bool _isCommitting;
     private string? _currentPrefix;
@@ -23,16 +26,36 @@ public sealed partial class OverlayViewModel : ObservableObject
     private bool _isAutocompleteOpen;
 
     [ObservableProperty]
-    private int _autocompleteSelectedIndex = -1;
+    private AutocompleteItem? _selectedAutocompleteItem;
 
-    public ObservableCollection<string> AutocompleteItems { get; } = [];
+    [ObservableProperty]
+    private int _inputFontSize = 16;
+
+    [ObservableProperty]
+    private int _previewFontSize = 14;
+
+    [ObservableProperty]
+    private string _accentColor = "#404040";
+
+    [ObservableProperty]
+    private IBrush _accentBrush = new SolidColorBrush(Color.Parse("#404040"));
+
+    [ObservableProperty]
+    private IBrush _accentBackgroundBrush = new SolidColorBrush(Color.Parse("#404040"), 0.25);
+
+    [ObservableProperty]
+    private bool _isAutocompleteEnabled = true;
+
+    public ObservableCollection<AutocompleteItem> AutocompleteItems { get; } = [];
 
     public event EventHandler<string>? SubmitRequested;
     public event EventHandler? HideRequested;
 
-    public OverlayViewModel(ILatexConverterService converter)
+    public OverlayViewModel(ILatexConverterService converter, ISettingsService settingsService)
     {
         _converter = converter;
+        _settingsService = settingsService;
+        ApplySettings(_settingsService.Load());
     }
 
     partial void OnInputTextChanged(string value)
@@ -42,17 +65,18 @@ public sealed partial class OverlayViewModel : ObservableObject
             PreviewText = string.Empty;
             IsAutocompleteOpen = false;
             AutocompleteItems.Clear();
-            AutocompleteSelectedIndex = -1;
+            SelectedAutocompleteItem = null;
             return;
         }
 
         PreviewText = _converter.Convert(value);
 
         if (_isCommitting) return;
+        if (!IsAutocompleteEnabled) return;
 
         IsAutocompleteOpen = false;
         AutocompleteItems.Clear();
-        AutocompleteSelectedIndex = -1;
+        SelectedAutocompleteItem = null;
 
         // Find trailing command prefix: \[a-zA-Z]+ at end of text
         var match = CommandPrefixRegex().Match(value);
@@ -69,22 +93,25 @@ public sealed partial class OverlayViewModel : ObservableObject
         if (candidates.Count == 0) return;
 
         foreach (var c in candidates)
-            AutocompleteItems.Add(c);
+        {
+            var unicode = _converter.Commands.TryGetValue(c, out var u) ? u : string.Empty;
+            AutocompleteItems.Add(new AutocompleteItem(c, unicode));
+        }
 
         IsAutocompleteOpen = true;
-        AutocompleteSelectedIndex = 0;
+        SelectedAutocompleteItem = AutocompleteItems.Count > 0 ? AutocompleteItems[0] : null;
     }
 
-    public void CommitAutocomplete(string selectedCommand)
+    public void CommitAutocomplete(AutocompleteItem? item)
     {
-        if (_currentPrefix is null || string.IsNullOrEmpty(InputText)) return;
+        if (item is null || _currentPrefix is null || string.IsNullOrEmpty(InputText)) return;
 
         _isCommitting = true;
         try
         {
             var newText = string.Concat(
                 InputText.AsSpan(0, _currentPrefixStart),
-                selectedCommand.AsSpan(),
+                item.Command.AsSpan(),
                 InputText.AsSpan(_currentPrefixStart + _currentPrefix.Length));
 
             InputText = newText;
@@ -100,17 +127,17 @@ public sealed partial class OverlayViewModel : ObservableObject
     {
         if (!IsAutocompleteOpen || AutocompleteItems.Count == 0) return;
 
-        var newIndex = AutocompleteSelectedIndex + delta;
-        newIndex = Math.Clamp(newIndex, 0, AutocompleteItems.Count - 1);
-        AutocompleteSelectedIndex = newIndex;
+        var currentIndex = SelectedAutocompleteItem is not null
+            ? AutocompleteItems.IndexOf(SelectedAutocompleteItem)
+            : -1;
+
+        var newIndex = Math.Clamp(currentIndex + delta, 0, AutocompleteItems.Count - 1);
+        SelectedAutocompleteItem = AutocompleteItems[newIndex];
     }
 
-    public string? GetSelectedAutocompleteItem()
+    public string? GetSelectedAutocompleteCommand()
     {
-        if (!IsAutocompleteOpen || AutocompleteSelectedIndex < 0 || AutocompleteSelectedIndex >= AutocompleteItems.Count)
-            return null;
-
-        return AutocompleteItems[AutocompleteSelectedIndex];
+        return SelectedAutocompleteItem?.Command;
     }
 
     public void Submit()
@@ -123,6 +150,7 @@ public sealed partial class OverlayViewModel : ObservableObject
     {
         IsAutocompleteOpen = false;
         InputText = string.Empty;
+        PreviewText = string.Empty;
         HideRequested?.Invoke(this, EventArgs.Empty);
     }
 
@@ -131,6 +159,22 @@ public sealed partial class OverlayViewModel : ObservableObject
         IsAutocompleteOpen = false;
         InputText = string.Empty;
         PreviewText = string.Empty;
+    }
+
+    public void ApplySettings(AppSettings settings)
+    {
+        InputFontSize = settings.InputFontSize;
+        PreviewFontSize = settings.PreviewFontSize;
+        AccentColor = settings.AccentColor;
+        IsAutocompleteEnabled = settings.AutocompleteEnabled;
+        UpdateBrushes();
+    }
+
+    public void UpdateBrushes()
+    {
+        var color = Color.Parse(AccentColor);
+        AccentBrush = new SolidColorBrush(color);
+        AccentBackgroundBrush = new SolidColorBrush(color, 0.25);
     }
 
     [GeneratedRegex(@"\\[a-zA-Z]+$")]
