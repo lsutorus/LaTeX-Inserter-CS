@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Velopack;
 using Velopack.Sources;
 using LaTeXInserter.Abstractions;
@@ -9,6 +10,7 @@ public sealed class UpdateService : IUpdateService
 {
     private readonly UpdateManager _updateManager;
     private UpdateInfo? _latestUpdate;
+    private static readonly TimeSpan CheckTimeout = TimeSpan.FromSeconds(10);
 
     public UpdateService()
     {
@@ -21,7 +23,15 @@ public sealed class UpdateService : IUpdateService
     {
         try
         {
-            var result = await _updateManager.CheckForUpdatesAsync();
+            using var cts = new CancellationTokenSource(CheckTimeout);
+
+            var checkTask = _updateManager.CheckForUpdatesAsync();
+            var completed = await Task.WhenAny(checkTask, Task.Delay(CheckTimeout, cts.Token));
+
+            if (completed != checkTask)
+                return UpdateCheckResult.Error("Update check timed out. Please try again later.");
+
+            var result = await checkTask;
 
             if (result is null)
                 return UpdateCheckResult.UpToDate();
