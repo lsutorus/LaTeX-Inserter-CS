@@ -27,9 +27,11 @@ jobs:
       - name: Install Velopack CLI
         run: dotnet tool install --global vpk
 
-      - name: Pack with Velopack (NSIS)
+      - name: Pack with Velopack
+        shell: pwsh
         run: |
-          vpk pack --packId LaTeXInserter --packVersion ${{ github.ref_name }} --packDir publish --format nsis --mainExe LaTeXInserter.exe
+          $version = "${{ github.ref_name }}" -replace '^v',''
+          vpk pack --packId LaTeXInserter --packVersion $version --packDir publish --mainExe LaTeXInserter.exe
 
       - name: Upload to GitHub Releases
         run: |
