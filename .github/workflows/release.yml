@@ -31,6 +31,7 @@ jobs:
         shell: pwsh
         run: |
           $version = "${{ github.ref_name }}" -replace '^v',''
+          Copy-Item src/LaTeXInserter/Assets/LaTeX-Inserter-icon-final.ico publish/
           vpk pack --packId LaTeXInserter --packVersion $version --packDir publish --mainExe LaTeXInserter.exe --icon publish/LaTeX-Inserter-icon-final.ico
 
       - name: Upload to GitHub Releases

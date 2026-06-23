@@ -20,7 +20,6 @@
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
     <EmbeddedResource Include="Assets\Commands.json" />
-    <Content Include="Assets\LaTeX-Inserter-icon-final.ico" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
