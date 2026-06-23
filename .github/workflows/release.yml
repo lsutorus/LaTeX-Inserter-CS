@@ -40,11 +40,11 @@ jobs:
       - name: Generate SHA256 for Setup.exe
         shell: pwsh
         run: |
-          $setup = Get-ChildItem -Path . -Filter "Setup.exe" -Recurse | Select-Object -First 1
+          $setup = Get-ChildItem -Path . -Filter "*Setup.exe" -Recurse | Select-Object -First 1
           if ($setup) {
             $hash = (Get-FileHash -Path $setup.FullName -Algorithm SHA256).Hash
-            "$hash  $($setup.Name)" | Out-File -FilePath "Setup.exe.sha256" -Encoding utf8NoBOM
-            gh release upload ${{ github.ref_name }} "Setup.exe.sha256" --repo lsutorus/LaTeX-Inserter-CS
+            "$hash  $($setup.Name)" | Out-File -FilePath "$($setup.Name).sha256" -Encoding utf8NoBOM
+            gh release upload ${{ github.ref_name }} "$($setup.Name).sha256" --repo lsutorus/LaTeX-Inserter-CS
           }
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
