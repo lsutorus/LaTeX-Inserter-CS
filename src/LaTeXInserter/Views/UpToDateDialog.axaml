@@ -17,8 +17,14 @@
         <TextBlock Text="{Binding SubtitleText}"
                    FontSize="13" Foreground="#aaaaaa"
                    HorizontalAlignment="Center" />
+
+        <ProgressBar IsIndeterminate="True"
+                     IsVisible="{Binding IsChecking}"
+                     Height="6" />
+
         <Button Content="OK" Click="OnOkClick"
                 HorizontalAlignment="Center"
-                Classes="dialog-ok" />
+                Classes="dialog-ok"
+                IsVisible="{Binding !IsChecking}" />
     </StackPanel>
 </Window>

@@ -113,16 +113,26 @@ public sealed class AppManager : IDisposable
     private async void OnCheckForUpdatesRequested(object? sender, EventArgs _)
     {
         var version = typeof(AppManager).Assembly.GetName().Version?.ToString() ?? "unknown";
+
+        // Show dialog immediately in "checking" state
+        _upToDateViewModel.VersionText = "Checking for Updates...";
+        _upToDateViewModel.SubtitleText = string.Empty;
+        _upToDateViewModel.IsChecking = true;
+        ShowUpToDateDialog();
+
         var result = await _updateService.CheckForUpdatesAsync();
+        _upToDateViewModel.IsChecking = false;
 
         if (result.IsError)
         {
             _upToDateViewModel.VersionText = "Unable to Check for Updates";
             _upToDateViewModel.SubtitleText = result.ErrorMessage ?? "Unknown error";
-            ShowUpToDateDialog();
         }
         else if (result.IsUpdateAvailable)
         {
+            // Close checking dialog, show update dialog instead
+            _activeUpToDateDialog?.Close();
+
             _updateViewModel.HeadingText = $"Version {result.Version} is Available";
             _updateViewModel.SubtitleText = $"Current: v{version}";
             _updateViewModel.ChangelogText = result.ReleaseNotes ?? string.Empty;
@@ -136,7 +146,6 @@ public sealed class AppManager : IDisposable
         {
             _upToDateViewModel.VersionText = "You are running the latest version";
             _upToDateViewModel.SubtitleText = $"v{version}";
-            ShowUpToDateDialog();
         }
     }
 
