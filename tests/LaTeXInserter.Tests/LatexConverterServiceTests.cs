@@ -119,4 +119,21 @@ public class LatexConverterServiceTests
         var svc = CreateService();
         Assert.All(svc.CommandNames, name => Assert.StartsWith("\\", name));
     }
+
+    [Fact]
+    public void UnresolvedCommand_Tracked()
+    {
+        var svc = CreateService();
+        svc.Convert(@"\unknownfoo");
+        Assert.NotEmpty(svc.LastUnresolvedCommands);
+        Assert.Contains(@"\unknownfoo", svc.LastUnresolvedCommands);
+    }
+
+    [Fact]
+    public void ResolvedCommand_NotTracked()
+    {
+        var svc = CreateService();
+        svc.Convert(@"\alpha");
+        Assert.Empty(svc.LastUnresolvedCommands);
+    }
 }

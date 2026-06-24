@@ -46,6 +46,11 @@ public sealed partial class OverlayViewModel : ObservableObject
     [ObservableProperty]
     private bool _isAutocompleteEnabled = true;
 
+    [ObservableProperty]
+    private string _conversionHint = string.Empty;
+
+    public bool HasConversionHint => !string.IsNullOrEmpty(ConversionHint);
+
     public ObservableCollection<AutocompleteItem> AutocompleteItems { get; } = [];
 
     public event EventHandler<string>? SubmitRequested;
@@ -63,6 +68,7 @@ public sealed partial class OverlayViewModel : ObservableObject
         if (string.IsNullOrEmpty(value))
         {
             PreviewText = string.Empty;
+            ConversionHint = string.Empty;
             IsAutocompleteOpen = false;
             AutocompleteItems.Clear();
             SelectedAutocompleteItem = null;
@@ -70,6 +76,10 @@ public sealed partial class OverlayViewModel : ObservableObject
         }
 
         PreviewText = _converter.Convert(value);
+        ConversionHint = _converter.LastUnresolvedCommands.Count > 0
+            ? string.Join(", ", _converter.LastUnresolvedCommands) + " — no Unicode equivalent"
+            : string.Empty;
+        OnPropertyChanged(nameof(HasConversionHint));
 
         if (_isCommitting) return;
         if (!IsAutocompleteEnabled) return;
@@ -150,6 +160,7 @@ public sealed partial class OverlayViewModel : ObservableObject
     {
         IsAutocompleteOpen = false;
         InputText = string.Empty;
+        ConversionHint = string.Empty;
         PreviewText = string.Empty;
         HideRequested?.Invoke(this, EventArgs.Empty);
     }
@@ -158,6 +169,7 @@ public sealed partial class OverlayViewModel : ObservableObject
     {
         IsAutocompleteOpen = false;
         InputText = string.Empty;
+        ConversionHint = string.Empty;
         PreviewText = string.Empty;
     }
 

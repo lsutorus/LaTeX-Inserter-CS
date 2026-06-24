@@ -43,6 +43,12 @@
                        TextWrapping="NoWrap" />
         </Border>
 
+        <TextBlock Text="{Binding ConversionHint}"
+                   FontSize="11"
+                   Foreground="#888888"
+                   Margin="8,0,8,4"
+                   IsVisible="{Binding HasConversionHint}" />
+
         <Popup x:Name="AutocompletePopup"
                IsOpen="{Binding IsAutocompleteOpen}"
                PlacementTarget="{Binding #InputTextBox}"

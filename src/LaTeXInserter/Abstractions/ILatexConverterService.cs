@@ -6,4 +6,5 @@ public interface ILatexConverterService
     IReadOnlyDictionary<string, string> Commands { get; }
     IReadOnlyList<string> CommandNames { get; }
     void Reload();
+    IReadOnlyList<string> LastUnresolvedCommands { get; }
 }

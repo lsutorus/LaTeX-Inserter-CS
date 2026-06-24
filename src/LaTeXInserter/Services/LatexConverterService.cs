@@ -13,6 +13,7 @@ public sealed class LatexConverterService : ILatexConverterService
     private Dictionary<string, string> _commands;
     private FrozenSet<string> _hasArg;
     private List<string> _commandNames;
+    private readonly List<string> _unresolvedCommands = [];
 
     private static readonly FrozenSet<string> IgnoreAsFallback = FrozenSet.ToFrozenSet(
     [
@@ -49,6 +50,7 @@ public sealed class LatexConverterService : ILatexConverterService
 
     public IReadOnlyDictionary<string, string> Commands => _commands;
     public IReadOnlyList<string> CommandNames => _commandNames;
+    public IReadOnlyList<string> LastUnresolvedCommands => _unresolvedCommands;
 
     public LatexConverterService(ISettingsService settingsService)
     {
@@ -104,8 +106,12 @@ public sealed class LatexConverterService : ILatexConverterService
     public string Convert(string input)
     {
         if (string.IsNullOrEmpty(input))
+        {
+            _unresolvedCommands.Clear();
             return string.Empty;
+        }
 
+        _unresolvedCommands.Clear();
         var sb = new StringBuilder(input.Length);
         var pos = 0;
         var span = input.AsSpan();
@@ -152,7 +158,10 @@ public sealed class LatexConverterService : ILatexConverterService
                     if (_commands.TryGetValue(cmd, out var mapped))
                         sb.Append(mapped);
                     else
+                    {
+                        _unresolvedCommands.Add(cmd);
                         sb.Append(cmd);
+                    }
                 }
             }
             else if (ch == '{')
@@ -303,7 +312,10 @@ public sealed class LatexConverterService : ILatexConverterService
                         if (_commands.TryGetValue(cmd, out var mapped))
                             sb.Append(mapped);
                         else
+                        {
+                            _unresolvedCommands.Add(cmd);
                             sb.Append(cmd);
+                        }
                     }
                 }
             }
@@ -411,10 +423,12 @@ public sealed class LatexConverterService : ILatexConverterService
                 continue;
             }
 
-            // Step 5: no mapping — return raw or skip if ignored
+            // Step 5: no mapping — track as unresolved and return raw
             if (!IgnoreAsFallback.Contains(cmd))
             {
-                return $"{cmd}{{{leaf}}}";
+                var unresolved = $"{cmd}{{{leaf}}}";
+                _unresolvedCommands.Add(unresolved);
+                return unresolved;
             }
 
             innermost = false;

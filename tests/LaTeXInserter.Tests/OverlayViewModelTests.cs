@@ -11,12 +11,14 @@ public class OverlayViewModelTests
     private static ILatexConverterService CreateConverter(
         string? convertResult = null,
         IReadOnlyList<string>? commandNames = null,
-        IReadOnlyDictionary<string, string>? commands = null)
+        IReadOnlyDictionary<string, string>? commands = null,
+        IReadOnlyList<string>? unresolvedCommands = null)
     {
         var mock = Substitute.For<ILatexConverterService>();
         mock.Convert(Arg.Any<string>()).Returns(convertResult ?? string.Empty);
         mock.CommandNames.Returns(commandNames ?? []);
         mock.Commands.Returns(commands ?? new Dictionary<string, string>());
+        mock.LastUnresolvedCommands.Returns(unresolvedCommands ?? []);
         return mock;
     }
 
@@ -212,5 +214,31 @@ public class OverlayViewModelTests
         var vm = new OverlayViewModel(converter, CreateSettings());
 
         Assert.Null(vm.GetSelectedAutocompleteCommand());
+    }
+
+    [Fact]
+    public void UnresolvedCommand_ShowsConversionHint()
+    {
+        var converter = CreateConverter(convertResult: @"^{\omega}", unresolvedCommands: new List<string> { @"^{\omega}" });
+        converter.Convert(@"x^{\omega}").Returns(@"^{\omega}");
+        converter.LastUnresolvedCommands.Returns(new List<string> { @"^{\omega}" }.AsReadOnly());
+        var vm = new OverlayViewModel(converter, CreateSettings());
+
+        vm.InputText = @"x^{\omega}";
+
+        Assert.NotEmpty(vm.ConversionHint);
+        Assert.True(vm.HasConversionHint);
+    }
+
+    [Fact]
+    public void ResolvedCommand_NoConversionHint()
+    {
+        var converter = CreateConverter(convertResult: "α");
+        var vm = new OverlayViewModel(converter, CreateSettings());
+
+        vm.InputText = @"\alpha";
+
+        Assert.Equal(string.Empty, vm.ConversionHint);
+        Assert.False(vm.HasConversionHint);
     }
 }
