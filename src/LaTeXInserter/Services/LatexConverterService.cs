@@ -172,8 +172,21 @@ public sealed class LatexConverterService : ILatexConverterService
                 var cmd = ch.ToString();
                 if (_hasArg.Contains(cmd) && pos < span.Length && span[pos] == '{')
                 {
+                    var openBrace = pos; // save position of '{'
+                    var rawGroupContent = CaptureRawGroup(span, openBrace);
                     var groupContent = ParseGroup(span, ref pos, depth + 1);
                     var result = HandleCmds([cmd], groupContent);
+
+                    // If unresolved (returned raw "^{...}" or "_{...}"), retry with raw group text.
+                    // This handles cases like ^{\gamma} where ParseGroup resolves \gamma→Unicode
+                    // before HandleCmds can look up the combined key "^{\gamma}".
+                    if (result == $"{cmd}{{{groupContent}}}")
+                    {
+                        var rawResult = HandleCmds([cmd], rawGroupContent);
+                        if (rawResult != $"{cmd}{{{rawGroupContent}}}")
+                            result = rawResult;
+                    }
+
                     sb.Append(result);
                 }
                 else if (pos < span.Length)
@@ -300,8 +313,18 @@ public sealed class LatexConverterService : ILatexConverterService
                 var cmd = ch.ToString();
                 if (_hasArg.Contains(cmd) && pos < span.Length && span[pos] == '{')
                 {
+                    var openBrace = pos;
+                    var rawGroupContent = CaptureRawGroup(span, openBrace);
                     var groupContent = ParseGroup(span, ref pos, depth + 1);
                     var result = HandleCmds([cmd], groupContent);
+
+                    if (result == $"{cmd}{{{groupContent}}}")
+                    {
+                        var rawResult = HandleCmds([cmd], rawGroupContent);
+                        if (rawResult != $"{cmd}{{{rawGroupContent}}}")
+                            result = rawResult;
+                    }
+
                     sb.Append(result);
                 }
                 else if (pos < span.Length)
@@ -324,6 +347,27 @@ public sealed class LatexConverterService : ILatexConverterService
         }
 
         return sb.ToString();
+    }
+
+    /// <summary>
+    /// Captures the raw text between braces at <paramref name="openBracePos"/>
+    /// without resolving any LaTeX commands inside. Does NOT advance <c>pos</c>.
+    /// </summary>
+    private static string CaptureRawGroup(ReadOnlySpan<char> span, int openBracePos)
+    {
+        var depth = 1;
+        var pos = openBracePos + 1;
+        while (pos < span.Length && depth > 0)
+        {
+            if (span[pos] == '{') depth++;
+            else if (span[pos] == '}') depth--;
+            pos++;
+        }
+        // If unmatched brace, depth>0 and pos==span.Length; return everything after '{'
+        var end = depth > 0 ? pos : pos - 1;
+        if (end <= openBracePos + 1)
+            return string.Empty;
+        return span[(openBracePos + 1)..end].ToString();
     }
 
     private string HandleCmds(List<string> cmds, string leaf)

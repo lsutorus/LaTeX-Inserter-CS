@@ -33,6 +33,12 @@ public class LatexConverterServiceTests
     public void Superscript() => Assert.Equal("x²", CreateService().Convert("x^2"));
 
     [Fact]
+    public void SuperscriptCommand() => Assert.Equal("xᵞ", CreateService().Convert(@"x^{\gamma}"));
+
+    [Fact]
+    public void SubscriptCommand() => Assert.Equal("xᵧ", CreateService().Convert(@"x_{\gamma}"));
+
+    [Fact]
     public void Subscript()
     {
         // _{i} maps to ᵢ (U+1D62)
