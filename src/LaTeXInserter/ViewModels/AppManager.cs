@@ -89,14 +89,26 @@ public sealed class AppManager : IDisposable
             _hotkeyService.StartAsync(CancellationToken.None);
 #pragma warning restore CS4014
 
-            // 5. Sync startup toggle from OS truth
-            await _trayIconViewModel.SyncStartupToggleAsync();
+            // 5. Sync startup registration from OS truth
+            try
+            {
+                var isRegistered = await _startupRegistrar.GetIsRegisteredAsync();
+                if (settings.StartOnStartup != isRegistered)
+                {
+                    settings = settings with { StartOnStartup = isRegistered };
+                    _settingsService.Save(settings);
+                }
+            }
+            catch
+            {
+                // Non-fatal: startup check failure shouldn't block init
+            }
 
             // 6. Wire events
             _hotkeyService.HotkeyPressed += OnHotkeyPressed;
             _trayIconViewModel.ShowOverlayRequested += OnShowOverlayRequested;
             _trayIconViewModel.SettingsRequested += OnSettingsRequested;
-            _trayIconViewModel.ChangeHotkeyRequested += OnChangeHotkeyRequested;
+            _settingsViewModel.ChangeHotkeyRequested += OnChangeHotkeyRequested;
             _trayIconViewModel.CheckForUpdatesRequested += OnCheckForUpdatesRequested;
             _updateViewModel.InstallRequested += OnInstallRequested;
             _trayIconViewModel.QuitRequested += OnQuitRequested;
@@ -375,7 +387,7 @@ public sealed class AppManager : IDisposable
             _hotkeyService.HotkeyPressed -= OnHotkeyPressed;
             _trayIconViewModel.ShowOverlayRequested -= OnShowOverlayRequested;
             _trayIconViewModel.SettingsRequested -= OnSettingsRequested;
-            _trayIconViewModel.ChangeHotkeyRequested -= OnChangeHotkeyRequested;
+            _settingsViewModel.ChangeHotkeyRequested -= OnChangeHotkeyRequested;
             _trayIconViewModel.CheckForUpdatesRequested -= OnCheckForUpdatesRequested;
             _trayIconViewModel.QuitRequested -= OnQuitRequested;
             _overlayViewModel.SubmitRequested -= OnSubmitRequested;

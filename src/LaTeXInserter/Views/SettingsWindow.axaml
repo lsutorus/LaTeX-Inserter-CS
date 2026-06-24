@@ -30,7 +30,7 @@
 
                     <TextBlock Grid.Row="2" Grid.Column="0"
                                Text="Accent Color" VerticalAlignment="Center" Margin="0,0,12,0" />
-                    <ItemsControl Grid.Row="2" Grid.Column="1"
+                    <ItemsControl x:Name="AccentSelector" Grid.Row="2" Grid.Column="1"
                                   ItemsSource="{x:Static vm:SettingsViewModel.AccentPalette}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
@@ -40,8 +40,7 @@
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <Button Width="24" Height="24" Margin="2"
-                                        CornerRadius="4" Padding="0"
-                                        Background="{Binding}"
+                                        Classes="accent-swatch"
                                         Click="OnSwatchClick" />
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
@@ -49,17 +48,36 @@
                 </Grid>
             </StackPanel>
 
-            <Separator />
+            <Border Height="1" Background="#444444" Margin="-16,0" />
 
-            <!-- Behavior Section -->
+            <!-- General Section -->
             <StackPanel Spacing="8">
-                <TextBlock Text="Behavior" FontWeight="SemiBold" FontSize="14" />
+                <TextBlock Text="General" FontWeight="SemiBold" FontSize="14" />
 
-                <CheckBox Content="Enable Autocomplete"
-                          IsChecked="{Binding AutocompleteEnabled}" />
+                <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto">
+                    <TextBlock Grid.Row="0" Grid.Column="0"
+                               Text="Hotkey" VerticalAlignment="Center" Margin="0,0,12,0" />
+                    <TextBlock Grid.Row="0" Grid.Column="1"
+                               Text="{Binding CurrentHotkeyDisplay}"
+                               VerticalAlignment="Center" />
+                    <Button Grid.Row="0" Grid.Column="2"
+                            Content="Change..."
+                            Command="{Binding ChangeHotkeyCommand}"
+                            HorizontalAlignment="Right" />
+
+                    <CheckBox Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3"
+                              Content="Enable Autocomplete"
+                              IsChecked="{Binding AutocompleteEnabled}"
+                              Margin="0,4,0,0" />
+
+                    <CheckBox Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3"
+                              Content="Start on Startup"
+                              IsChecked="{Binding StartOnStartup}"
+                              Margin="0,4,0,0" />
+                </Grid>
             </StackPanel>
 
-            <Separator />
+            <Border Height="1" Background="#444444" Margin="-16,0" />
 
             <!-- Action Buttons -->
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">

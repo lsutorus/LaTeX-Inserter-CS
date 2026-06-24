@@ -47,6 +47,18 @@
         <Style Selector="TextBlock.blocked">
             <Setter Property="Foreground" Value="#FFB74D" />
         </Style>
+
+        <!-- Accent color swatch styles -->
+        <Style Selector="Button.accent-swatch">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="0" />
+        </Style>
+        <Style Selector="Button.accent-swatch.accent-selected">
+            <Setter Property="BorderBrush" Value="White" />
+        </Style>
     </Application.Styles>
 
     <TrayIcon.Icons>
