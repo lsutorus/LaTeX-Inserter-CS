@@ -33,7 +33,7 @@ Requires admin on Windows (keyboard hooks require elevation).
 - Velopack creates GitHub releases with tag name WITHOUT `v` prefix (e.g. `0.0.5` not `v0.0.5`)
 - Release assets: Velopack bundle + SHA256
 - Draft releases auto-created by `vpk upload`; publish manually via `gh release edit <tag> --draft=false`
-- Current version: 0.0.6
+- Current version: 0.0.7
 
 ## Architecture & Documentation
 
