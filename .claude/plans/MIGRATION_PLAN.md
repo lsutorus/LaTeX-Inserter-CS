@@ -175,13 +175,14 @@ Rewrite of LaTeX Inserter from Python/PyQt5 to C#/.NET 10 with Avalonia UI.
 
 - [x] Create `AutocompleteItem` model — `sealed record(string Command, string Unicode)`, UI-only, no JsonContext
 - [x] Extend `AppSettings` — add `InputFontSize=16`, `PreviewFontSize=14`, `AccentColor="#404040"`, `AutocompleteEnabled=true` with record defaults
-- [x] Create `SettingsViewModel` — editable copy, Save/Cancel commands, `SettingsSaved` + `CloseRequested` events
-- [x] Create `SettingsWindow` — native OS chrome, Appearance (InputFontSize, PreviewFontSize NumericUpDowns, accent swatch palette), Behavior (AutocompleteEnabled checkbox)
+- [x] Create `SettingsViewModel` — editable copy, Save/Cancel commands, `SettingsSaved` + `CloseRequested` + `ChangeHotkeyRequested` events. IHotkeyService + IStartupRegistrar deps for hotkey display + startup sync.
+- [x] Create `SettingsWindow` — native OS chrome, Appearance (InputFontSize, PreviewFontSize NumericUpDowns, accent swatch palette with code-behind SolidColorBrush + accent-selected CSS ring), General (hotkey display + Change button, AutocompleteEnabled checkbox, StartOnStartup checkbox)
 - [x] Update `OverlayViewModel` — `AutocompleteItems`→`ObservableCollection<AutocompleteItem>`, `SelectedAutocompleteItem`, `AccentBrush`/`AccentBackgroundBrush` (IBrush), `InputFontSize`/`PreviewFontSize`/`IsAutocompleteEnabled`, `ApplySettings()`, `UpdateBrushes()`, inject `ISettingsService`
 - [x] Update `OverlayWindow.axaml` — TextBox accent border, Preview MinHeight+font bind, ListBox ItemTemplate with Grid (Command+Unicode), DynamicResource for accent bg, style selector for selected item
 - [x] Update `OverlayWindow.axaml.cs` — Tab passes AutocompleteItem, `UpdateAccentResource()` swaps DynamicResource on brush change
 - [x] Add "Settings..." tray menu item at position 2, `SettingsRequested` event
-- [x] AppManager: settings window singleton, routes `SettingsSaved` → `OverlayViewModel.ApplySettings()`
+- [x] Move hotkey change + startup toggle from tray to settings window. TrayIconViewModel stripped of IStartupRegistrar, ChangeHotkeyRequested, ToggleStartupCommand, SyncStartupToggleAsync.
+- [x] AppManager: settings window singleton, routes `SettingsSaved` → `OverlayViewModel.ApplySettings()`, `ChangeHotkeyRequested` from SettingsViewModel, inline startup sync on init
 - [x] Register `SettingsViewModel` in DI
 - [x] Update unit tests for new OverlayViewModel API (103 passing)
 
@@ -228,7 +229,7 @@ Rewrite of LaTeX Inserter from Python/PyQt5 to C#/.NET 10 with Avalonia UI.
 
 ### Anti-patterns (from Python CLAUDE.md, still apply)
 - **No hotkey polling** — event-driven via SharpHook, no timer-based `IsPressed` loops
-- **No local-only menu items** — store all tray menu items as fields on ViewModel (prevent GC)
+- **No hotkey/startup in tray** — moved to Settings window; tray only has Show/Hide, Settings, Mappings, Updates, Quit
 - **Unregister before recording** — in C# context: set recording flag (same hook, skips matching)
 - **Canonical hotkey sort** — deterministic normalization: modifiers first (fixed order), then non-modifiers
 - **No shipping loose exes** — release assets = Velopack bundle + sha256 only
