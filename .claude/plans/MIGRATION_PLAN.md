@@ -110,9 +110,9 @@ Rewrite of LaTeX Inserter from Python/PyQt5 to C#/.NET 10 with Avalonia UI.
 - [x] Create `OverlayViewModel`
   - [x] `InputText` (bound to TextBox)
   - [x] `PreviewText` (Unicode preview, updated on every keystroke via `LatexConverterService`)
-  - [x] `AutocompleteItems` — `ObservableCollection<string>` filtered by trailing `\word`
+  - [x] `AutocompleteItems` — `ObservableCollection<AutocompleteItem>` filtered by trailing `\word` (v0.0.6: changed from `ObservableCollection<string>` to show Unicode alongside commands)
   - [x] `IsAutocompleteOpen` — controls Popup visibility
-  - [x] `AutocompleteSelectedIndex` — tracks ListBox selection
+  - [x] `AutocompleteSelectedIndex` — tracks ListBox selection (v0.0.6: replaced by `SelectedAutocompleteItem` of type `AutocompleteItem?`)
 - [x] Smart window positioning (port from Python):
   - [x] Cursor position as default top-left corner
   - [x] Flip right if overflows right edge
@@ -171,7 +171,21 @@ Rewrite of LaTeX Inserter from Python/PyQt5 to C#/.NET 10 with Avalonia UI.
 - [x] Create `.github/workflows/release.yml` — tag-triggered CI: build + Velopack pack + upload to GitHub Release
 - [x] Test: push v0.0.1 tag → CI builds release → install app → bump to v0.0.2 → push tag → verify in-app updater detects and downloads update
 
-## Phase 7: macOS Porting & Platform Parity
+## Phase 7: Settings Window & Autocomplete Unicode Preview (v0.0.6)
+
+- [x] Create `AutocompleteItem` model — `sealed record(string Command, string Unicode)`, UI-only, no JsonContext
+- [x] Extend `AppSettings` — add `InputFontSize=16`, `PreviewFontSize=14`, `AccentColor="#404040"`, `AutocompleteEnabled=true` with record defaults
+- [x] Create `SettingsViewModel` — editable copy, Save/Cancel commands, `SettingsSaved` + `CloseRequested` events
+- [x] Create `SettingsWindow` — native OS chrome, Appearance (InputFontSize, PreviewFontSize NumericUpDowns, accent swatch palette), Behavior (AutocompleteEnabled checkbox)
+- [x] Update `OverlayViewModel` — `AutocompleteItems`→`ObservableCollection<AutocompleteItem>`, `SelectedAutocompleteItem`, `AccentBrush`/`AccentBackgroundBrush` (IBrush), `InputFontSize`/`PreviewFontSize`/`IsAutocompleteEnabled`, `ApplySettings()`, `UpdateBrushes()`, inject `ISettingsService`
+- [x] Update `OverlayWindow.axaml` — TextBox accent border, Preview MinHeight+font bind, ListBox ItemTemplate with Grid (Command+Unicode), DynamicResource for accent bg, style selector for selected item
+- [x] Update `OverlayWindow.axaml.cs` — Tab passes AutocompleteItem, `UpdateAccentResource()` swaps DynamicResource on brush change
+- [x] Add "Settings..." tray menu item at position 2, `SettingsRequested` event
+- [x] AppManager: settings window singleton, routes `SettingsSaved` → `OverlayViewModel.ApplySettings()`
+- [x] Register `SettingsViewModel` in DI
+- [x] Update unit tests for new OverlayViewModel API (103 passing)
+
+## Phase 8: macOS Porting & Platform Parity
 
 - [ ] Create `MacosWindowActivator : IWindowActivator`
   - [ ] Implement native macOS window focus capture on hotkey trigger

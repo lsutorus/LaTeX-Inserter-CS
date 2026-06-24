@@ -33,7 +33,7 @@ Requires admin on Windows (keyboard hooks require elevation).
 - Velopack creates GitHub releases with tag name WITHOUT `v` prefix (e.g. `0.0.5` not `v0.0.5`)
 - Release assets: Velopack bundle + SHA256
 - Draft releases auto-created by `vpk upload`; publish manually via `gh release edit <tag> --draft=false`
-- Current version: 0.0.5
+- Current version: 0.0.6
 
 ## Architecture & Documentation
 
@@ -53,6 +53,9 @@ Requires admin on Windows (keyboard hooks require elevation).
 - **Custom mappings**: Plain text `\command char` at AppData, NOT JSON (user-editable by design)
 - **Default commands**: `Commands.json` embedded resource, loaded via source-gen deserializer
 - **Autocomplete**: TextBox + Popup + ListBox (IntelliSense pattern), NOT AutoCompleteBox
+- **Settings window**: Non-modal singleton via AppManager, native OS chrome, live reload overlay via `SettingsSaved` event → `OverlayViewModel.ApplySettings()`
+- **Accent color**: hex string in settings → `SolidColorBrush` on ViewModel (solid + 0.25 opacity for selection bg), DynamicResource for ListBoxItem selected style
+- **Font sizes**: Two independent settings — `InputFontSize` (input TextBox + autocomplete dropdown) and `PreviewFontSize` (unicode preview TextBlock)
 - **Update check UX**: Immediate dialog with indeterminate progress bar on "Check for Updates" click; content swaps to result once check completes (up-to-date / error / update available)
 
 ## Anti-patterns
@@ -60,6 +63,8 @@ Requires admin on Windows (keyboard hooks require elevation).
 - **No hotkey polling** — event-driven via SharpHook, no timer loops
 - **No local-only tray menu items** — store all as fields on ViewModel (prevent GC)
 - **No `AutoCompleteBox`** — replaces prefix text in multi-command input
+- **No accent color as `Color` struct in AppSettings** — use hex string, parse to `IBrush` on ViewModel (AOT-safe, no custom JsonConverter needed)
+- **No `DynamicResource` for accent bg in DataTemplate** — DataContext shifts inside DataTemplate; use ListBox-level Resources + code-behind swap instead
 - **No shipping loose exes** — release assets = Velopack bundle + sha256 only
 - **No `.bak` file swap** — Velopack handles in-place update
 - **No dummy releases for testing** — downgrade local version instead

@@ -35,15 +35,19 @@ latex-inserter-c#/
 │       │       ├── WindowsWindowActivator.cs   (AttachThreadInput + SetForegroundWindow)
 │       │       └── WindowsStartupRegistrar.cs  (Windows Registry startup entry)
 │       ├── Models/
+│       │   ├── AppSettings.cs          (record: Hotkey, StartOnStartup, InputFontSize, PreviewFontSize, AccentColor, AutocompleteEnabled)
+│       │   ├── AutocompleteItem.cs    (record: Command + Unicode, UI-only, no JsonContext)
 │       │   ├── HotkeyChord.cs          (record HotkeyChord(ModifierMask, KeyCode))
 │       │   ├── HotkeyBlocklist.cs      (FrozenSet<HotkeyChord>, 32 Windows-reserved combos)
 │       │   └── JsonContext.cs          ([JsonSerializable] source-gen context)
 │       ├── ViewModels/
-│       │   ├── AppManager.cs           (orchestrator: services, tray, overlay lifecycle)
-│       │   ├── OverlayViewModel.cs     (input, preview, autocomplete, keyboard routing)
-│       │   └── TrayIconViewModel.cs    (tray menu commands, dynamic labels)
+│       │   ├── AppManager.cs           (orchestrator: services, tray, overlay lifecycle, settings window singleton)
+│       │   ├── OverlayViewModel.cs     (input, preview, autocomplete, accent brushes, settings binding)
+│       │   ├── SettingsViewModel.cs    (editable settings copy, Save/Cancel, SettingsSaved event)
+│       │   └── TrayIconViewModel.cs    (tray menu commands, dynamic labels, Settings item)
 │       ├── Views/
 │       │   ├── OverlayWindow.axaml(.cs)       (borderless topmost popup)
+│       │   ├── SettingsWindow.axaml(.cs)      (native OS chrome, font sizes + accent swatches + autocomplete toggle)
 │       │   ├── HotkeyDialogWindow.axaml(.cs)  (recording dialog)
 │       │   ├── UpToDateDialog.axaml(.cs)      (themed frameless "up to date")
 │       │   └── UpdateDialog.axaml(.cs)        (themed frameless, progress + changelog)
@@ -81,6 +85,7 @@ Registered services:
 - `IStartupRegistrar` → `WindowsStartupRegistrar` (singleton, Windows-only for now)
 - `OverlayViewModel` (singleton)
 - `TrayIconViewModel` (singleton)
+- `SettingsViewModel` (singleton)
 - `AppManager` (singleton)
 
 ### SharpHook (Global Hotkey + Input Simulation)
@@ -145,12 +150,16 @@ Hand-written zero-dependency parser replacing the Python Lark LALR parser + `ToU
 
 - `TextBox` for input + `Popup` containing `ListBox` above/below
 - `Popup.IsOpen` bound to VM boolean
-- `ListBox.ItemsSource` bound to `ObservableCollection<string>` filtered by trailing `\word`
+- `ListBox.ItemsSource` bound to `ObservableCollection<AutocompleteItem>` filtered by trailing `\word`
+- `AutocompleteItem`: `sealed record(string Command, string Unicode)` — UI-only model, no JsonContext entry. Built on-the-fly from `IConverterService.Commands`
+- `ListBox.ItemTemplate`: `DataTemplate` with Grid — Command (left) + Unicode (right, Opacity=0.6). FontSize inherits from ListBox (bound to `InputFontSize`)
+- **Accent color selection**: `DynamicResource` key `AccentBgBrush` in `ListBox.Resources`, target `ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter`. Code-behind swaps resource on `AccentBackgroundBrush` change (explicit DataContext in DataTemplate can't reach ViewModel)
 - **Keyboard routing:**
   - Up/Down: navigate ListBox
   - Tab: commit autocomplete (replace trailing `\word`, preserve prefix)
   - Enter (popup open): commit autocomplete
   - Enter (popup closed): convert → clipboard → hide → activate previous window → paste
+- **Autocomplete disabled**: when `IsAutocompleteEnabled = false`, dropdown never opens. Full-convert still works on Enter.
 - NOT using `AutoCompleteBox` — it risks replacing prefix text in multi-command input like `x = \alpha + \beta`
 
 ### Window Activation (Windows)
@@ -169,3 +178,16 @@ Hand-written zero-dependency parser replacing the Python Lark LALR parser + `ToU
 - Merged over built-in commands at load time
 - Lines with `{` in command name auto-added to `HAS_ARG` set
 - Override built-ins for same key
+
+### Settings Window
+
+- **Non-modal singleton**: `AppManager` holds `_activeSettingsWindow`, activates existing if re-clicked (matches HotkeyDialog pattern)
+- **Native OS chrome**: standard window decorations, cross-platform compatible
+- **ViewModel**: `SettingsViewModel` — holds editable copy of `AppSettings`, Save persists via `SettingsService`, fires `SettingsSaved` event, Cancel fires `CloseRequested`
+- **AppManager orchestration**: `SettingsSaved` → `OverlayViewModel.ApplySettings()` for live reload
+- **Accent color model**: settings store hex string (`"#EF4444"`). `OverlayViewModel.UpdateBrushes()` parses to two `IBrush` properties:
+  - `AccentBrush` — solid color, bound to TextBox `BorderBrush`
+  - `AccentBackgroundBrush` — same color at 0.25 opacity, for autocomplete selected item background
+- **Swatch palette**: 10 preset colors (Modern Dark UI palette guaranteeing WCAG contrast on #2b2b2b): `#404040`, `#D1D5DB`, `#3B82F6`, `#8B5CF6`, `#EC4899`, `#EF4444`, `#F97316`, `#F59E0B`, `#10B981`, `#06B6D4`
+- **Settings persistence**: all settings in single `settings.json`. New fields use C# record defaults — missing fields in old JSON auto-fill, no migration code needed
+- **Tray menu item**: "Settings..." at position 2 (after Show/Hide)
