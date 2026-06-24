@@ -32,7 +32,7 @@ public sealed partial class OverlayViewModel : ObservableObject
     private int _inputFontSize = 16;
 
     [ObservableProperty]
-    private int _previewFontSize = 14;
+    private int _previewFontSize = 20;
 
     [ObservableProperty]
     private string _accentColor = "#404040";

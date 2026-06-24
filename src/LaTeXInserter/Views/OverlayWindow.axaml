@@ -73,7 +73,8 @@
                                 <TextBlock Grid.Column="1"
                                            Text="{Binding Unicode}"
                                            Opacity="0.6"
-                                           VerticalAlignment="Center" />
+                                           VerticalAlignment="Center"
+                                           Margin="8,0,0,0" />
                             </Grid>
                         </DataTemplate>
                     </ListBox.ItemTemplate>

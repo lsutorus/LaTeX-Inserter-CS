@@ -6,7 +6,7 @@ public sealed record AppSettings(
     HotkeyChord Hotkey = default,
     bool StartOnStartup = false,
     int InputFontSize = 16,
-    int PreviewFontSize = 14,
+    int PreviewFontSize = 20,
     string AccentColor = "#404040",
     bool AutocompleteEnabled = true
 )
