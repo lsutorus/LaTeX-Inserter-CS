@@ -50,10 +50,11 @@ Requires admin on Windows (keyboard hooks require elevation).
 - **DI strictness**: Constructor injection only. No service locator. Composition root in `Program.cs`
 - **Single SharpHook instance**: Flag-based dispatch for normal vs recording mode
 - **Hotkey model**: `record HotkeyChord(ModifierMask Modifiers, KeyCode TriggerKey)` with `[Flags]` enum
-- **Custom mappings**: Plain text `\command char` at AppData, NOT JSON (user-editable by design)
+- **Custom mappings**: Plain text `\command char` at AppData, NOT JSON (user-editable by design). `LatexConverterService.DefaultCommands` exposes pre-merge defaults for CustomMappingsWindow Tab 2.
+- **Custom mappings window**: Non-modal singleton via AppManager (same pattern as SettingsWindow). Tabbed UI: Tab 1 "Custom Mappings" (from `custom_mappings.txt`), Tab 2 "Default Mappings" (from `Commands.json`). Inline edit via MappingItem.IsEditing flag. Save overwrites file + calls `LatexConverterService.Reload()`. Cancel discards staged changes. `Reload()` on open refreshes from disk.
 - **Default commands**: `Commands.json` embedded resource, loaded via source-gen deserializer
 - **Autocomplete**: TextBox + Popup + ListBox (IntelliSense pattern), NOT AutoCompleteBox
-- **Settings window**: Non-modal singleton via AppManager, native OS chrome, live reload overlay via `SettingsSaved` event → `OverlayViewModel.ApplySettings()`. Hotkey change + startup toggle moved from tray to Settings (ChangeHotkeyRequested routed via AppManager). Inline startup sync in `InitializeAsync`.
+- **Settings window**: Non-modal singleton via AppManager, native OS chrome, `CanResize = false` in code-behind (Avalonia 12 ResizeMode XML attribute fails with compiled bindings AVLN2000). Live reload overlay via `SettingsSaved` event → `OverlayViewModel.ApplySettings()`. Hotkey change + startup toggle moved from tray to Settings (ChangeHotkeyRequested routed via AppManager). Inline startup sync in `InitializeAsync`.
 - **Accent color**: hex string in settings → code-behind `SolidColorBrush(Color.Parse(hex))` on swatch buttons, `accent-selected` CSS class for ring, `AccentColorChanged` event. ViewModel parses hex to `IBrush` for overlay (solid + 0.25 opacity for selection bg)
 - **Font sizes**: Two independent settings — `InputFontSize` (input TextBox + autocomplete dropdown) and `PreviewFontSize` (unicode preview TextBlock)
 - **Update check UX**: Immediate dialog with indeterminate progress bar on "Check for Updates" click; content swaps to result once check completes (up-to-date / error / update available)
@@ -61,7 +62,8 @@ Requires admin on Windows (keyboard hooks require elevation).
 ## Anti-patterns
 
 - **No hotkey polling** — event-driven via SharpHook, no timer loops
-- **No hotkey/startup in tray** — moved to Settings window; tray only has Show/Hide, Settings, Mappings, Updates, Quit
+- **No hotkey/startup in tray** — moved to Settings window; tray only has Show/Hide, Settings, Edit Custom Mappings..., Check for Updates..., Quit
+- **No Reload Custom Mappings in tray** — removed; reload happens automatically on Save in CustomMappingsWindow
 - **No `AutoCompleteBox`** — replaces prefix text in multi-command input
 - **No accent color as `Color` struct in AppSettings** — use hex string, parse to `IBrush` on ViewModel (AOT-safe, no custom JsonConverter needed)
 - **No `DynamicResource` for accent bg in DataTemplate** — DataContext shifts inside DataTemplate; use ListBox-level Resources + code-behind swap instead. For swatch selection ring, use code-behind CSS class toggle (`accent-selected`), not DynamicResource
@@ -71,6 +73,7 @@ Requires admin on Windows (keyboard hooks require elevation).
 - **No service locator** — no `App.ServiceProvider.GetService()` in random classes
 - **No `[DllImport]`** — always `[LibraryImport]` + partial methods
 - **No reflection-based JSON** — always `JsonSerializerContext` source generators
+- **No `ResizeMode` in AXAML** — Avalonia 12 compiled bindings fail with AVLN2000; set `CanResize` property in code-behind instead
 
 ## Agent skills
 

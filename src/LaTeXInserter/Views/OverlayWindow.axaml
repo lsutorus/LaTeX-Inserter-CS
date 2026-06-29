@@ -33,8 +33,7 @@
                  Classes="overlay-input"
                  Text="{Binding InputText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                  FontSize="{Binding InputFontSize}"
-                 BorderThickness="1"
-                 BorderBrush="{Binding AccentBrush}" />
+                 BorderThickness="1" />
 
         <Border MinHeight="24" VerticalAlignment="Center" Margin="8,2,8,4">
             <TextBlock Text="{Binding PreviewText}"
@@ -62,9 +61,6 @@
                          Focusable="False"
                          FontSize="{Binding InputFontSize}"
                          Foreground="#cccccc">
-                    <ListBox.Resources>
-                        <SolidColorBrush x:Key="AccentBgBrush" Color="#404040" Opacity="0.25" />
-                    </ListBox.Resources>
                     <ListBox.Styles>
                         <Style Selector="ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
                             <Setter Property="Background" Value="{DynamicResource AccentBgBrush}" />

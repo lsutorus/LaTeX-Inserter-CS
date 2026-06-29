@@ -202,6 +202,27 @@ Rewrite of LaTeX Inserter from Python/PyQt5 to C#/.NET 10 with Avalonia UI.
 - [ ] Verify macOS Security & Privacy setup
   - [ ] Document the necessary macOS permission prompts (Accessibility and Input Monitoring) required for SharpHook to capture global hotkeys and simulate events
 
+## Phase 9: Custom Mappings UI Window
+
+- [x] Add `CanResize = false` to SettingsWindow code-behind (Avalonia 12: ResizeMode XML attribute fails with compiled bindings AVLN2000)
+- [x] Create `MappingItem` model (ObservableObject: Command, Character, IsOverride, IsEditing, HasValidationError, DefaultCommand, DefaultCharacter)
+- [x] Add `DefaultCommands` property to `LatexConverterService` and `ILatexConverterService` (snapshot before MergeCustomMappings, used by Tab 2)
+- [x] Create `CustomMappingsViewModel` (staged CRUD, Save/Cancel/Reload, tab awareness, validation, inline edit commit)
+- [x] Create `CustomMappingsWindow.axaml` — tabbed UI (Custom Mappings + Default Mappings), ListBox with DataTemplate, Window.Styles for validation error (mapping-error) and button accents (mapping-delete, mapping-revert), bottom DockPanel button bar
+- [x] Create `CustomMappingsWindow.axaml.cs` — DoubleTapped, KeyDown (Enter/Escape), LostFocus → commit edit, calls vm.OnItemEditCommitted()
+- [x] Update `TrayIconViewModel` — rename "Edit Custom Mappings" → "Edit Custom Mappings...", remove ReloadMappings command/item, fire EditMappingsRequested event instead of Process.Start
+- [x] Update `AppManager` — add CustomMappingsWindow singleton, OnEditMappingsRequested handler, wire EditMappingsRequested/CloseRequested, cleanup in Dispose
+- [x] Register `CustomMappingsViewModel` in DI (Program.cs)
+
+### Known issues / TODO from implementation
+
+- [ ] Revert to Default has no confirmation dialog (plan calls for one; currently strips overrides immediately)
+- [ ] Tab switch while editing does not block switch if validation fails (plan says "block switch if validation fails")
+- [ ] Tab 1 Add button: new row Command starts as `\` which triggers HasValidationError=true — may need better UX (placeholder text, auto-focus)
+- [ ] Tab 2 Delete on non-override items should be greyed out (CanDelete logic correct, but button styling not explicitly set to disabled look)
+- [ ] Save button `CanExecute` not refreshed when HasValidationErrors changes unless `SaveCommand.NotifyCanExecuteChanged()` fires — current `OnHasValidationErrorsChanged` calls this, but validation errors on MappingItem don't propagate to VM's `HasValidationErrors` automatically (only via `CheckValidation()` called from `OnItemEditCommitted` and `Add`)
+- [ ] Re-open window: VM is singleton, `Reload()` re-populates collections but doesn't create a fresh window — works because AppManager creates new CustomMappingsWindow each time
+
 ---
 
 ## Architectural Constraints (must follow)
@@ -229,7 +250,8 @@ Rewrite of LaTeX Inserter from Python/PyQt5 to C#/.NET 10 with Avalonia UI.
 
 ### Anti-patterns (from Python CLAUDE.md, still apply)
 - **No hotkey polling** — event-driven via SharpHook, no timer-based `IsPressed` loops
-- **No hotkey/startup in tray** — moved to Settings window; tray only has Show/Hide, Settings, Mappings, Updates, Quit
+- **No hotkey/startup in tray** — moved to Settings window; tray only has Show/Hide, Settings, Edit Custom Mappings..., Check for Updates, Quit
+- **No Reload Custom Mappings in tray** — removed; reload happens automatically on Save in CustomMappingsWindow
 - **Unregister before recording** — in C# context: set recording flag (same hook, skips matching)
 - **Canonical hotkey sort** — deterministic normalization: modifiers first (fixed order), then non-modifiers
 - **No shipping loose exes** — release assets = Velopack bundle + sha256 only

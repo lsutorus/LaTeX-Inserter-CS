@@ -11,6 +11,7 @@ public sealed class LatexConverterService : ILatexConverterService
 {
     private readonly ISettingsService _settingsService;
     private Dictionary<string, string> _commands;
+    private Dictionary<string, string> _defaultCommands;
     private FrozenSet<string> _hasArg;
     private List<string> _commandNames;
     private readonly List<string> _unresolvedCommands = [];
@@ -49,6 +50,7 @@ public sealed class LatexConverterService : ILatexConverterService
     ]);
 
     public IReadOnlyDictionary<string, string> Commands => _commands;
+    public IReadOnlyDictionary<string, string> DefaultCommands => _defaultCommands;
     public IReadOnlyList<string> CommandNames => _commandNames;
     public IReadOnlyList<string> LastUnresolvedCommands => _unresolvedCommands;
 
@@ -56,6 +58,7 @@ public sealed class LatexConverterService : ILatexConverterService
     {
         _settingsService = settingsService;
         _commands = LoadDefaultCommands();
+        _defaultCommands = new Dictionary<string, string>(_commands);
         _hasArg = default!;
         _commandNames = default!;
         MergeCustomMappings();
@@ -64,6 +67,7 @@ public sealed class LatexConverterService : ILatexConverterService
     public void Reload()
     {
         _commands = LoadDefaultCommands();
+        _defaultCommands = new Dictionary<string, string>(_commands);
         MergeCustomMappings();
     }
 

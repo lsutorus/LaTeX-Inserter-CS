@@ -180,6 +180,7 @@ public sealed partial class OverlayViewModel : ObservableObject
         AccentColor = settings.AccentColor;
         IsAutocompleteEnabled = settings.AutocompleteEnabled;
         UpdateBrushes();
+        App.ApplyAccentColor(settings.AccentColor);
     }
 
     public void UpdateBrushes()

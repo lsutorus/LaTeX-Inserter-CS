@@ -1,13 +1,9 @@
-using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using LaTeXInserter.Abstractions;
-using LaTeXInserter.Helpers;
-using LaTeXInserter.Models;
-using LaTeXInserter.Platform.Windows;
 using LaTeXInserter.ViewModels;
 
 namespace LaTeXInserter.Views;
@@ -16,7 +12,7 @@ public partial class OverlayWindow : Window
 {
     private OverlayViewModel? _vm;
 
-    public IWindowActivator? WindowActivator { get; set; }
+    public IOverlayPositioner? OverlayPositioner { get; set; }
 
     public OverlayWindow()
     {
@@ -28,7 +24,7 @@ public partial class OverlayWindow : Window
 
     private void OnOpened(object? sender, EventArgs e)
     {
-        PositionOverlay();
+        OverlayPositioner?.PositionOverlay(this);
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -39,66 +35,10 @@ public partial class OverlayWindow : Window
         {
             _vm = DataContext as OverlayViewModel;
             Opacity = 0;
-            PositionOverlay();
-
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                var handle = TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
-                if (handle != IntPtr.Zero && WindowActivator is not null)
-                    WindowActivator.Activate(handle);
-            }
+            OverlayPositioner?.PositionOverlay(this);
 
             Dispatcher.UIThread.Post(() => InputTextBox.Focus(), DispatcherPriority.Input);
-
-            // Wire VM property changes for accent resource swap
-            if (_vm is not null)
-            {
-                _vm.PropertyChanged -= OnVmPropertyChanged;
-                _vm.PropertyChanged += OnVmPropertyChanged;
-            }
         }
-    }
-
-    private void OnVmPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
-    {
-        if (e.PropertyName == nameof(OverlayViewModel.AccentBackgroundBrush))
-            UpdateAccentResource();
-    }
-
-    private void UpdateAccentResource()
-    {
-        if (_vm is not null)
-            AutocompleteListBox.Resources["AccentBgBrush"] = _vm.AccentBackgroundBrush;
-    }
-
-    private void PositionOverlay()
-    {
-        if (ClientSize.Height <= 0)
-            return;
-
-        PixelPoint cursorPos;
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            NativeMethods.GetCursorPos(out var pt);
-            cursorPos = new PixelPoint(pt.X, pt.Y);
-        }
-        else
-        {
-            var primary = Screens.Primary;
-            cursorPos = primary is not null
-                ? new PixelPoint(primary.WorkingArea.X + primary.WorkingArea.Width / 2,
-                                 primary.WorkingArea.Y + primary.WorkingArea.Height / 2)
-                : new PixelPoint(0, 0);
-        }
-
-        var screen = Screens.ScreenFromPoint(cursorPos) ?? Screens.Primary!;
-        var scaling = screen.Scaling;
-        var physicalSize = new PixelSize(
-            (int)(ClientSize.Width * scaling),
-            (int)(ClientSize.Height * scaling));
-
-        Position = OverlayPositioner.GetPosition(cursorPos, physicalSize, screen.WorkingArea);
-        Opacity = 1;
     }
 
     private void OnPreviewKeyDown(object? sender, KeyEventArgs e)

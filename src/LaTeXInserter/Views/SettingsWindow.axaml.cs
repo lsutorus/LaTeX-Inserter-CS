@@ -1,6 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
-using Avalonia.Media;
+using LaTeXInserter.Models;
 using LaTeXInserter.ViewModels;
 
 namespace LaTeXInserter.Views;
@@ -10,68 +10,21 @@ public partial class SettingsWindow : Window
     public SettingsWindow()
     {
         InitializeComponent();
-        AccentSelector.ItemsView.CollectionChanged += (_, _) => InitializeSwatchColors();
-    }
 
-    protected override void OnDataContextChanged(EventArgs e)
-    {
-        base.OnDataContextChanged(e);
+        CanResize = false;
 
-        if (DataContext is SettingsViewModel vm)
-        {
-            vm.AccentColorChanged += OnAccentColorChanged;
-            UpdateSwatchSelection(vm.AccentColor);
-        }
-    }
-
-    private void InitializeSwatchColors()
-    {
-        foreach (var item in AccentSelector.Items)
-        {
-            if (item is not string hex) continue;
-            var container = AccentSelector.ContainerFromItem(item);
-            if (container is ContentControl { Content: Button btn })
-            {
-                btn.Background = new SolidColorBrush(Color.Parse(hex));
-                btn.DataContext = hex;
-            }
-        }
-
-        if (DataContext is SettingsViewModel vm)
-            UpdateSwatchSelection(vm.AccentColor);
-    }
-
-    private void UpdateSwatchSelection(string selectedHex)
-    {
-        foreach (var item in AccentSelector.Items)
-        {
-            if (item is not string hex) continue;
-            var container = AccentSelector.ContainerFromItem(item);
-            if (container is ContentControl { Content: Button btn })
-            {
-                if (hex == selectedHex)
-                    btn.Classes.Add("accent-selected");
-                else
-                    btn.Classes.Remove("accent-selected");
-            }
-        }
+        // Set ItemsSource in code-behind — {x:Static} doesn't work reliably
+        // with AvaloniaUseCompiledBindingsByDefault=true
+        AccentSelector.ItemsSource = SettingsViewModel.AccentPalette;
     }
 
     private void OnSwatchClick(object? sender, RoutedEventArgs e)
     {
-        if (sender is Button btn && btn.DataContext is string hex)
+        if (sender is Button btn && btn.DataContext is AccentSwatchInfo swatch)
         {
             var vm = DataContext as SettingsViewModel;
-            if (vm is not null && vm.AccentColor != hex)
-            {
-                vm.AccentColor = hex;
-                UpdateSwatchSelection(hex);
-            }
+            if (vm is not null && vm.AccentColor != swatch.Hex)
+                vm.SelectSwatch(swatch);
         }
-    }
-
-    private void OnAccentColorChanged(object? sender, string hex)
-    {
-        UpdateSwatchSelection(hex);
     }
 }

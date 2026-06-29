@@ -1,3 +1,4 @@
+using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using LaTeXInserter.Abstractions;
@@ -29,11 +30,26 @@ public sealed partial class SettingsViewModel : ObservableObject
     partial void OnAccentColorChanged(string value)
         => AccentColorChanged?.Invoke(this, value);
 
-    public static IReadOnlyList<string> AccentPalette { get; } =
+    public static List<AccentSwatchInfo> AccentPalette { get; } =
     [
-        "#404040", "#D1D5DB", "#3B82F6", "#8B5CF6", "#EC4899",
-        "#EF4444", "#F97316", "#F59E0B", "#10B981", "#06B6D4"
+        new("#404040", new SolidColorBrush(Color.Parse("#404040"))),
+        new("#D1D5DB", new SolidColorBrush(Color.Parse("#D1D5DB"))),
+        new("#3B82F6", new SolidColorBrush(Color.Parse("#3B82F6"))),
+        new("#8B5CF6", new SolidColorBrush(Color.Parse("#8B5CF6"))),
+        new("#EC4899", new SolidColorBrush(Color.Parse("#EC4899"))),
+        new("#EF4444", new SolidColorBrush(Color.Parse("#EF4444"))),
+        new("#F97316", new SolidColorBrush(Color.Parse("#F97316"))),
+        new("#F59E0B", new SolidColorBrush(Color.Parse("#F59E0B"))),
+        new("#10B981", new SolidColorBrush(Color.Parse("#10B981"))),
+        new("#06B6D4", new SolidColorBrush(Color.Parse("#06B6D4")))
     ];
+
+    public void SelectSwatch(AccentSwatchInfo swatch)
+    {
+        foreach (var s in AccentPalette)
+            s.IsSelected = s == swatch;
+        AccentColor = swatch.Hex;
+    }
 
     public string CurrentHotkeyDisplay => _hotkeyService.CurrentHotkey.ToString();
 
@@ -56,6 +72,10 @@ public sealed partial class SettingsViewModel : ObservableObject
         AccentColor = settings.AccentColor;
         AutocompleteEnabled = settings.AutocompleteEnabled;
         StartOnStartup = settings.StartOnStartup;
+
+        // Mark initial swatch selection
+        foreach (var s in AccentPalette)
+            s.IsSelected = s.Hex == settings.AccentColor;
 
         _hotkeyService.HotkeyChanged += OnHotkeyChanged;
     }

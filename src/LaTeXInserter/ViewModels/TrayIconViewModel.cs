@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Avalonia.Controls;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.Input;
@@ -16,7 +15,6 @@ public sealed partial class TrayIconViewModel
     private readonly NativeMenuItem _showHideOverlayItem;
     private readonly NativeMenuItem _settingsItem;
     private readonly NativeMenuItem _editMappingsItem;
-    private readonly NativeMenuItem _reloadMappingsItem;
     private readonly NativeMenuItem _checkForUpdatesItem;
     private readonly NativeMenuItem _quitItem;
 
@@ -24,6 +22,7 @@ public sealed partial class TrayIconViewModel
 
     public event EventHandler? ShowOverlayRequested;
     public event EventHandler? SettingsRequested;
+    public event EventHandler? EditMappingsRequested;
     public event EventHandler? CheckForUpdatesRequested;
     public event EventHandler? QuitRequested;
 
@@ -38,15 +37,13 @@ public sealed partial class TrayIconViewModel
 
         _showHideOverlayItem = new NativeMenuItem($"Show/Hide Overlay ({hotkeyService.CurrentHotkey})");
         _settingsItem = new NativeMenuItem("Settings...");
-        _editMappingsItem = new NativeMenuItem("Edit Custom Mappings");
-        _reloadMappingsItem = new NativeMenuItem("Reload Custom Mappings");
+        _editMappingsItem = new NativeMenuItem("Edit Custom Mappings...");
         _checkForUpdatesItem = new NativeMenuItem("Check for Updates...");
         _quitItem = new NativeMenuItem("Quit");
 
         _showHideOverlayItem.Command = ShowHideOverlayCommand;
         _settingsItem.Command = SettingsCommand;
         _editMappingsItem.Command = EditMappingsCommand;
-        _reloadMappingsItem.Command = ReloadMappingsCommand;
         _checkForUpdatesItem.Command = CheckForUpdatesCommand;
         _quitItem.Command = QuitCommand;
 
@@ -56,7 +53,6 @@ public sealed partial class TrayIconViewModel
             new NativeMenuItemSeparator(),
             _settingsItem,
             _editMappingsItem,
-            _reloadMappingsItem,
             new NativeMenuItemSeparator(),
             _checkForUpdatesItem,
             new NativeMenuItemSeparator(),
@@ -84,14 +80,7 @@ public sealed partial class TrayIconViewModel
     private void Settings() => SettingsRequested?.Invoke(this, EventArgs.Empty);
 
     [RelayCommand]
-    private void EditMappings()
-    {
-        var path = _settingsService.GetCustomMappingsFilePath();
-        Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
-    }
-
-    [RelayCommand]
-    private void ReloadMappings() => _latexConverter.Reload();
+    private void EditMappings() => EditMappingsRequested?.Invoke(this, EventArgs.Empty);
 
     [RelayCommand]
     private void CheckForUpdates() => CheckForUpdatesRequested?.Invoke(this, EventArgs.Empty);

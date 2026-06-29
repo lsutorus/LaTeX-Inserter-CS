@@ -3,6 +3,10 @@
              x:Class="LaTeXInserter.App"
              RequestedThemeVariant="Dark">
 
+    <Application.Resources>
+        <SolidColorBrush x:Key="AccentBgBrush" Color="#404040" Opacity="0.25" />
+    </Application.Resources>
+
     <Application.Styles>
         <FluentTheme />
 
@@ -49,15 +53,17 @@
         </Style>
 
         <!-- Accent color swatch styles -->
+        <Style Selector="Border.accent-ring">
+            <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+        <Style Selector="Border.accent-ring.accent-selected">
+            <Setter Property="BorderBrush" Value="White" />
+        </Style>
         <Style Selector="Button.accent-swatch">
-            <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderBrush" Value="Transparent" />
             <Setter Property="BorderThickness" Value="2" />
             <Setter Property="CornerRadius" Value="4" />
             <Setter Property="Padding" Value="0" />
-        </Style>
-        <Style Selector="Button.accent-swatch.accent-selected">
-            <Setter Property="BorderBrush" Value="White" />
         </Style>
     </Application.Styles>
 

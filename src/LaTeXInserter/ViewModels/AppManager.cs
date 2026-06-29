@@ -15,8 +15,8 @@ public sealed class AppManager : IDisposable
     private readonly IHotkeyService _hotkeyService;
     private readonly IStartupRegistrar _startupRegistrar;
     private readonly IWindowActivator _windowActivator;
-    private readonly IClipboardProvider _clipboardProvider;
-    private readonly IInputSimulatorService _inputSimulator;
+    private readonly IOverlayPositioner _overlayPositioner;
+    private readonly ISubmitPasteService _submitPasteService;
     private readonly IUpdateService _updateService;
     private readonly TrayIconViewModel _trayIconViewModel;
     private readonly OverlayViewModel _overlayViewModel;
@@ -24,12 +24,14 @@ public sealed class AppManager : IDisposable
     private readonly UpdateViewModel _updateViewModel;
     private readonly HotkeyDialogViewModel _hotkeyDialogViewModel;
     private readonly SettingsViewModel _settingsViewModel;
+    private readonly CustomMappingsViewModel _customMappingsViewModel;
 
     private OverlayWindow? _overlayWindow;
     private UpToDateDialog? _activeUpToDateDialog;
     private UpdateDialog? _activeUpdateDialog;
     private HotkeyDialogWindow? _activeHotkeyDialog;
     private SettingsWindow? _activeSettingsWindow;
+    private CustomMappingsWindow? _activeCustomMappingsWindow;
     private bool _isToggling;
     private bool _isShutdown;
     private bool _isDisposed;
@@ -42,22 +44,23 @@ public sealed class AppManager : IDisposable
         IHotkeyService hotkeyService,
         IStartupRegistrar startupRegistrar,
         IWindowActivator windowActivator,
-        IClipboardProvider clipboardProvider,
-        IInputSimulatorService inputSimulator,
+        IOverlayPositioner overlayPositioner,
+        ISubmitPasteService submitPasteService,
         IUpdateService updateService,
         TrayIconViewModel trayIconViewModel,
         OverlayViewModel overlayViewModel,
         UpToDateViewModel upToDateViewModel,
         UpdateViewModel updateViewModel,
         HotkeyDialogViewModel hotkeyDialogViewModel,
-        SettingsViewModel settingsViewModel)
+        SettingsViewModel settingsViewModel,
+        CustomMappingsViewModel customMappingsViewModel)
     {
         _settingsService = settingsService;
         _hotkeyService = hotkeyService;
         _startupRegistrar = startupRegistrar;
         _windowActivator = windowActivator;
-        _clipboardProvider = clipboardProvider;
-        _inputSimulator = inputSimulator;
+        _overlayPositioner = overlayPositioner;
+        _submitPasteService = submitPasteService;
         _updateService = updateService;
         _trayIconViewModel = trayIconViewModel;
         _overlayViewModel = overlayViewModel;
@@ -65,6 +68,7 @@ public sealed class AppManager : IDisposable
         _updateViewModel = updateViewModel;
         _hotkeyDialogViewModel = hotkeyDialogViewModel;
         _settingsViewModel = settingsViewModel;
+        _customMappingsViewModel = customMappingsViewModel;
     }
 
     public async Task InitializeAsync()
@@ -106,8 +110,10 @@ public sealed class AppManager : IDisposable
 
             // 6. Wire events
             _hotkeyService.HotkeyPressed += OnHotkeyPressed;
+            _submitPasteService.OverlayHideRequested += OnHideRequested;
             _trayIconViewModel.ShowOverlayRequested += OnShowOverlayRequested;
             _trayIconViewModel.SettingsRequested += OnSettingsRequested;
+            _trayIconViewModel.EditMappingsRequested += OnEditMappingsRequested;
             _settingsViewModel.ChangeHotkeyRequested += OnChangeHotkeyRequested;
             _trayIconViewModel.CheckForUpdatesRequested += OnCheckForUpdatesRequested;
             _updateViewModel.InstallRequested += OnInstallRequested;
@@ -116,6 +122,7 @@ public sealed class AppManager : IDisposable
             _overlayViewModel.HideRequested += OnHideRequested;
             _settingsViewModel.SettingsSaved += OnSettingsSaved;
             _settingsViewModel.CloseRequested += OnSettingsCloseRequested;
+            _customMappingsViewModel.CloseRequested += OnCustomMappingsCloseRequested;
 
             // Set version text on dialog VM
             var version = typeof(AppManager).Assembly.GetName().Version?.ToString() ?? "unknown";
@@ -265,29 +272,37 @@ public sealed class AppManager : IDisposable
         _activeSettingsWindow?.Close();
     }
 
+    private void OnEditMappingsRequested(object? sender, EventArgs _)
+    {
+        if (_activeCustomMappingsWindow is not null)
+        {
+            _activeCustomMappingsWindow.Activate();
+            return;
+        }
+
+        Dispatcher.UIThread.Post(() =>
+        {
+            // Re-initialize VM with fresh data each time window opens
+            _customMappingsViewModel.Reload();
+
+            _activeCustomMappingsWindow = new CustomMappingsWindow
+            {
+                DataContext = _customMappingsViewModel
+            };
+
+            _activeCustomMappingsWindow.Closed += (_, _) => _activeCustomMappingsWindow = null;
+            _activeCustomMappingsWindow.Show();
+        });
+    }
+
+    private void OnCustomMappingsCloseRequested(object? sender, EventArgs _)
+    {
+        _activeCustomMappingsWindow?.Close();
+    }
+
     private async void OnSubmitRequested(object? sender, string convertedText)
     {
-        try
-        {
-            // 1. Set clipboard while the overlay window is visible and active
-            await _clipboardProvider.SetTextAsync(convertedText);
-
-            // 2. Restore focus to the target editor while we still have Win32 foreground permission
-            _windowActivator.Restore();
-
-            // 3. Hide the overlay
-            HideOverlay();
-
-            // 4. Delay briefly to let the OS focus transition complete
-            await Task.Delay(50);
-
-            // 5. Simulate the paste keys
-            await _inputSimulator.SimulatePasteAsync(convertedText);
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"SubmitAndPaste failed: {ex}");
-        }
+        await _submitPasteService.ExecuteAsync(convertedText);
     }
 
     public void ToggleOverlay()
@@ -315,7 +330,7 @@ public sealed class AppManager : IDisposable
             _overlayWindow = new OverlayWindow
             {
                 DataContext = _overlayViewModel,
-                WindowActivator = _windowActivator
+                OverlayPositioner = _overlayPositioner
             };
         }
 
@@ -385,8 +400,10 @@ public sealed class AppManager : IDisposable
         if (!_isShutdown)
         {
             _hotkeyService.HotkeyPressed -= OnHotkeyPressed;
+            _submitPasteService.OverlayHideRequested -= OnHideRequested;
             _trayIconViewModel.ShowOverlayRequested -= OnShowOverlayRequested;
             _trayIconViewModel.SettingsRequested -= OnSettingsRequested;
+            _trayIconViewModel.EditMappingsRequested -= OnEditMappingsRequested;
             _settingsViewModel.ChangeHotkeyRequested -= OnChangeHotkeyRequested;
             _trayIconViewModel.CheckForUpdatesRequested -= OnCheckForUpdatesRequested;
             _trayIconViewModel.QuitRequested -= OnQuitRequested;
@@ -395,6 +412,7 @@ public sealed class AppManager : IDisposable
             _updateViewModel.InstallRequested -= OnInstallRequested;
             _settingsViewModel.SettingsSaved -= OnSettingsSaved;
             _settingsViewModel.CloseRequested -= OnSettingsCloseRequested;
+            _customMappingsViewModel.CloseRequested -= OnCustomMappingsCloseRequested;
             _hotkeyService.Dispose();
         }
 
@@ -402,5 +420,6 @@ public sealed class AppManager : IDisposable
         _overlayWindow = null;
         _activeHotkeyDialog?.Close();
         _activeSettingsWindow?.Close();
+        _activeCustomMappingsWindow?.Close();
     }
 }

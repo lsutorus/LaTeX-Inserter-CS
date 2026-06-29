@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:LaTeXInserter.ViewModels"
+        xmlns:models="using:LaTeXInserter.Models"
         x:Class="LaTeXInserter.Views.SettingsWindow"
         x:DataType="vm:SettingsViewModel"
         Title="Settings"
@@ -30,18 +31,23 @@
 
                     <TextBlock Grid.Row="2" Grid.Column="0"
                                Text="Accent Color" VerticalAlignment="Center" Margin="0,0,12,0" />
-                    <ItemsControl x:Name="AccentSelector" Grid.Row="2" Grid.Column="1"
-                                  ItemsSource="{x:Static vm:SettingsViewModel.AccentPalette}">
+                    <ItemsControl x:Name="AccentSelector" Grid.Row="2" Grid.Column="1">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
                                 <WrapPanel />
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Button Width="24" Height="24" Margin="2"
-                                        Classes="accent-swatch"
-                                        Click="OnSwatchClick" />
+                            <DataTemplate x:DataType="models:AccentSwatchInfo">
+                                <Border Width="28" Height="28" Margin="2"
+                                        BorderThickness="2" CornerRadius="6"
+                                        Classes.accent-selected="{Binding IsSelected}"
+                                        Classes="accent-ring">
+                                    <Button Width="24" Height="24"
+                                            Classes="accent-swatch"
+                                            Background="{Binding Brush}"
+                                            Click="OnSwatchClick" />
+                                </Border>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>

@@ -39,15 +39,19 @@ latex-inserter-c#/
 │       │   ├── AutocompleteItem.cs    (record: Command + Unicode, UI-only, no JsonContext)
 │       │   ├── HotkeyChord.cs          (record HotkeyChord(ModifierMask, KeyCode))
 │       │   ├── HotkeyBlocklist.cs      (FrozenSet<HotkeyChord>, 32 Windows-reserved combos)
+│       │   ├── AccentSwatchInfo.cs     (ObservableObject: Hex, Brush, IsSelected — settings swatch model)
+│       │   ├── MappingItem.cs          (ObservableObject: Command, Character, IsOverride, IsEditing, HasValidationError, DefaultCommand, DefaultCharacter — custom mappings row model)
 │       │   └── JsonContext.cs          ([JsonSerializable] source-gen context)
 │       ├── ViewModels/
-│       │   ├── AppManager.cs           (orchestrator: services, tray, overlay lifecycle, settings window singleton)
+│       │   ├── AppManager.cs           (orchestrator: services, tray, overlay lifecycle, settings window singleton, custom mappings window singleton)
 │       │   ├── OverlayViewModel.cs     (input, preview, autocomplete, accent brushes, settings binding)
 │       │   ├── SettingsViewModel.cs    (editable settings copy, Save/Cancel, SettingsSaved event)
-│       │   └── TrayIconViewModel.cs    (tray menu commands, dynamic labels, Settings item)
+│       │   ├── CustomMappingsViewModel.cs (staged CRUD for custom/default mappings, Save/Cancel/Reload, tab awareness, inline edit commit)
+│       │   └── TrayIconViewModel.cs    (tray menu commands, dynamic labels, Settings/EditMappingsRequested events)
 │       ├── Views/
 │       │   ├── OverlayWindow.axaml(.cs)       (borderless topmost popup)
-│       │   ├── SettingsWindow.axaml(.cs)      (native OS chrome, font sizes + accent swatches + autocomplete toggle)
+│       │   ├── SettingsWindow.axaml(.cs)      (native OS chrome, CanResize=false in code-behind, font sizes + accent swatches + autocomplete toggle)
+│       │   ├── CustomMappingsWindow.axaml(.cs) (tabbed: Custom Mappings + Default Mappings, ListBox inline edit, bottom button bar, validation)
 │       │   ├── HotkeyDialogWindow.axaml(.cs)  (recording dialog)
 │       │   ├── UpToDateDialog.axaml(.cs)      (themed frameless "up to date")
 │       │   └── UpdateDialog.axaml(.cs)        (themed frameless, progress + changelog)
@@ -65,9 +69,10 @@ All Views bind to ViewModels via `DataContext`. ViewModels use `ObservableObject
 
 **ViewModel responsibilities:**
 - `OverlayViewModel`: input text, preview text, autocomplete collection/filter, keyboard routing (Tab/Enter/Escape), conversion hints for unresolved commands
-- `TrayIconViewModel`: tray menu commands, dynamic hotkey label (hotkey/startup moved to SettingsViewModel)
+- `TrayIconViewModel`: tray menu commands, dynamic hotkey label, fires EditMappingsRequested/SettingsRequested events (no longer opens notepad or calls Reload directly)
+- `CustomMappingsViewModel`: staged CRUD for custom and default mapping items, reload on open, write to file + LatexConverterService.Reload() on save, tab-aware button states, inline edit commit tracking, validation
 - `SettingsViewModel`: editable settings with hotkey change + startup toggle, Save persists + syncs OS registration, fires SettingsSaved/ChangeHotkeyRequested events
-- `AppManager`: top-level orchestrator — wires services to VMs, manages overlay show/hide, coordinates hotkey → overlay → paste flow
+- `AppManager`: top-level orchestrator — wires services to VMs, manages overlay show/hide, coordinates hotkey → overlay → paste flow, settings window singleton, custom mappings window singleton
 
 ### Dependency Injection (Microsoft.Extensions.DependencyInjection)
 
@@ -87,6 +92,7 @@ Registered services:
 - `OverlayViewModel` (singleton)
 - `TrayIconViewModel` (singleton)
 - `SettingsViewModel` (singleton)
+- `CustomMappingsViewModel` (singleton)
 - `AppManager` (singleton)
 
 ### SharpHook (Global Hotkey + Input Simulation)
@@ -179,11 +185,28 @@ Hand-written zero-dependency parser replacing the Python Lark LALR parser + `ToU
 - Merged over built-in commands at load time
 - Lines with `{` in command name auto-added to `HAS_ARG` set
 - Override built-ins for same key
+- `LatexConverterService.DefaultCommands` exposes pre-merge defaults (for CustomMappingsWindow Tab 2)
+
+### Custom Mappings Window
+
+- **Non-modal singleton**: `AppManager` holds `_activeCustomMappingsWindow`, activates existing if re-clicked (matches SettingsWindow pattern)
+- **Tabbed UI**: Tab 1 "Custom Mappings" (user's `custom_mappings.txt` entries), Tab 2 "Default Mappings" (from `Commands.json`, read-only source)
+- **Override tracking**: asterisk `*` on rows where custom entry overrides a default
+- **Row model**: `MappingItem` (ObservableObject) — `Command`, `Character`, `IsOverride`, `IsEditing`, `HasValidationError`, `DefaultCommand`, `DefaultCharacter`
+- **Inline editing**: double-click or Edit button enters edit mode; Enter commits, Escape cancels, Tab moves between fields; click-away commits
+- **Validation**: Command must start with `\` and not be empty; invalid → red border via `mapping-error` CSS class; Save disabled during errors
+- **Tab 1**: Add (inserts at index 0 with edit mode), Edit, Delete (immediate, Cancel undoes everything)
+- **Tab 2**: Edit creates override (writes to `custom_mappings.txt` on Save), Delete removes override (reverts to default), Add disabled, Revert to Default strips all overrides
+- **Bottom button bar**: `[Add] [Edit] [Delete] [Revert to Default]` left group, `[Save] [Cancel]` right group
+- **Save flow**: overwrites `custom_mappings.txt` with all staged custom entries → calls `LatexConverterService.Reload()` → closes window
+- **Cancel**: discards all staged changes, closes window
+- **Reload on open**: `CustomMappingsViewModel.Reload()` clears and re-populates from files each time window opens
+- **Code-behind**: `DoubleTapped` → enter edit, `KeyDown` (Enter/Escape) → commit/cancel edit, `LostFocus` → commit edit, calls `vm.OnItemEditCommitted()`
 
 ### Settings Window
 
 - **Non-modal singleton**: `AppManager` holds `_activeSettingsWindow`, activates existing if re-clicked (matches HotkeyDialog pattern)
-- **Native OS chrome**: standard window decorations, cross-platform compatible
+- **Native OS chrome**: standard window decorations, `CanResize = false` set in code-behind (Avalonia 12 `ResizeMode` XML attribute not supported with compiled bindings)
 - **Layout**: Appearance section (input/preview font size NumericUpDowns, accent color swatch grid) + General section (hotkey display + Change button, autocomplete checkbox, start on startup checkbox)
 - **ViewModel**: `SettingsViewModel` — holds editable copy of `AppSettings` with `IHotkeyService` + `IStartupRegistrar` deps. Save persists via `SettingsService`, syncs OS startup registration, fires `SettingsSaved` event. ChangeHotkeyCommand fires `ChangeHotkeyRequested` (routed through AppManager to show HotkeyDialogWindow)
 - **AppManager orchestration**: `SettingsSaved` → `OverlayViewModel.ApplySettings()` for live reload. `ChangeHotkeyRequested` (from Settings) → same `OnChangeHotkeyRequested` handler (shared with tray). Inline startup sync on init (no longer via TrayIconViewModel)
@@ -193,4 +216,4 @@ Hand-written zero-dependency parser replacing the Python Lark LALR parser + `ToU
 - **Swatch rendering**: code-behind `InitializeSwatchColors()` sets `Button.Background = new SolidColorBrush(Color.Parse(hex))` from DataContext on each swatch. `OnSwatchClick` reads hex from `btn.DataContext`. Selected swatch gets `accent-selected` CSS class (white border ring). `SettingsViewModel.AccentColorChanged` event → code-behind `UpdateSwatchSelection()` re-applies CSS class after programmatic changes.
 - **Swatch palette**: 10 preset colors (Modern Dark UI palette guaranteeing WCAG contrast on #2b2b2b): `#404040`, `#D1D5DB`, `#3B82F6`, `#8B5CF6`, `#EC4899`, `#EF4444`, `#F97316`, `#F59E0B`, `#10B981`, `#06B6D4`
 - **Settings persistence**: all settings in single `settings.json`. New fields use C# record defaults — missing fields in old JSON auto-fill, no migration code needed
-- **Tray menu items**: Show/Hide Overlay, Settings..., Edit Custom Mappings, Reload Custom Mappings, Check for Updates..., Quit (hotkey/startup moved to Settings)
+- **Tray menu items**: Show/Hide Overlay, Settings..., Edit Custom Mappings..., Check for Updates..., Quit (hotkey/startup moved to Settings; Reload Custom Mappings removed — reload happens on Save)

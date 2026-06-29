@@ -41,6 +41,8 @@ internal static class Program
         services.AddSingleton<IClipboardProvider, AvaloniaClipboardProvider>();
         services.AddSingleton<IInputSimulatorService, InputSimulatorService>();
         services.AddSingleton<IWindowActivator, WindowsWindowActivator>();
+        services.AddSingleton<IOverlayPositioner, WindowsOverlayPositioner>();
+        services.AddSingleton<ISubmitPasteService, SubmitPasteService>();
         services.AddSingleton<IStartupRegistrar, WindowsStartupRegistrar>();
 
         // Phase 3 — tray & lifecycle
@@ -56,6 +58,9 @@ internal static class Program
 
         // Settings
         services.AddSingleton<SettingsViewModel>();
+
+        // Custom Mappings
+        services.AddSingleton<CustomMappingsViewModel>();
 
         // Phase 6 — updates
         services.AddSingleton<IUpdateService, UpdateService>();
