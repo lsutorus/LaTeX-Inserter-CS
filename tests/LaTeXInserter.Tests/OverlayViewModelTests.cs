@@ -29,11 +29,18 @@ public class OverlayViewModelTests
         return mock;
     }
 
+    private static IAccentColorModule CreateAccentColorModule()
+    {
+        var mock = Substitute.For<IAccentColorModule>();
+        mock.AccentColorApplied += (_, _) => { };
+        return mock;
+    }
+
     [Fact]
     public void EmptyInput_NoPreviewNoAutocomplete()
     {
         var converter = CreateConverter();
-        var vm = new OverlayViewModel(converter, CreateSettings());
+        var vm = new OverlayViewModel(converter, CreateSettings(), CreateAccentColorModule());
 
         vm.InputText = "";
 
@@ -46,7 +53,7 @@ public class OverlayViewModelTests
     {
         var converter = CreateConverter(convertResult: "hello", commandNames: []);
         converter.Convert("hello").Returns("hello");
-        var vm = new OverlayViewModel(converter, CreateSettings());
+        var vm = new OverlayViewModel(converter, CreateSettings(), CreateAccentColorModule());
 
         vm.InputText = "hello";
 
@@ -62,7 +69,7 @@ public class OverlayViewModelTests
         var commands = new Dictionary<string, string> { { "\\alpha", "α" }, { "\\approx", "≈" }, { "\\beta", "β" } };
         var converter = CreateConverter(commandNames: names, commands: commands);
         converter.Convert("\\alp").Returns("αp");
-        var vm = new OverlayViewModel(converter, CreateSettings());
+        var vm = new OverlayViewModel(converter, CreateSettings(), CreateAccentColorModule());
 
         vm.InputText = "\\alp";
 
@@ -79,7 +86,7 @@ public class OverlayViewModelTests
     {
         var names = new List<string> { "\\alpha" };
         var converter = CreateConverter(commandNames: names);
-        var vm = new OverlayViewModel(converter, CreateSettings());
+        var vm = new OverlayViewModel(converter, CreateSettings(), CreateAccentColorModule());
 
         vm.InputText = "\\alpha ";
 
@@ -93,7 +100,7 @@ public class OverlayViewModelTests
         var commands = new Dictionary<string, string> { { "\\alpha", "α" } };
         var converter = CreateConverter(commandNames: names, commands: commands);
         converter.Convert("x = \\alp + \\alp").Returns("x = αp + αp");
-        var vm = new OverlayViewModel(converter, CreateSettings());
+        var vm = new OverlayViewModel(converter, CreateSettings(), CreateAccentColorModule());
 
         vm.InputText = "x = \\alp + \\alp";
         var item = new AutocompleteItem("\\alpha", "α");
@@ -109,7 +116,7 @@ public class OverlayViewModelTests
         var names = new List<string> { "\\alpha" };
         var commands = new Dictionary<string, string> { { "\\alpha", "α" } };
         var converter = CreateConverter(commandNames: names, commands: commands);
-        var vm = new OverlayViewModel(converter, CreateSettings());
+        var vm = new OverlayViewModel(converter, CreateSettings(), CreateAccentColorModule());
 
         vm.InputText = "\\alp";
         Assert.True(vm.IsAutocompleteOpen);
@@ -126,7 +133,7 @@ public class OverlayViewModelTests
         var names = new List<string> { "\\alpha", "\\approx", "\\angle" };
         var commands = new Dictionary<string, string> { { "\\alpha", "α" }, { "\\approx", "≈" }, { "\\angle", "∠" } };
         var converter = CreateConverter(commandNames: names, commands: commands);
-        var vm = new OverlayViewModel(converter, CreateSettings());
+        var vm = new OverlayViewModel(converter, CreateSettings(), CreateAccentColorModule());
 
         vm.InputText = "\\a";
         Assert.Equal(3, vm.AutocompleteItems.Count);
@@ -152,7 +159,7 @@ public class OverlayViewModelTests
     public void Cancel_ResetsStateAndFiresHideRequested()
     {
         var converter = CreateConverter();
-        var vm = new OverlayViewModel(converter, CreateSettings());
+        var vm = new OverlayViewModel(converter, CreateSettings(), CreateAccentColorModule());
         var hideFired = false;
         vm.HideRequested += (_, _) => hideFired = true;
 
@@ -168,7 +175,7 @@ public class OverlayViewModelTests
     public void ResetState_ClearsAll()
     {
         var converter = CreateConverter();
-        var vm = new OverlayViewModel(converter, CreateSettings());
+        var vm = new OverlayViewModel(converter, CreateSettings(), CreateAccentColorModule());
 
         vm.InputText = "\\alpha";
         vm.ResetState();
@@ -183,7 +190,7 @@ public class OverlayViewModelTests
     {
         var converter = CreateConverter();
         converter.Convert("\\alpha").Returns("α");
-        var vm = new OverlayViewModel(converter, CreateSettings());
+        var vm = new OverlayViewModel(converter, CreateSettings(), CreateAccentColorModule());
         string? submitted = null;
         vm.SubmitRequested += (_, text) => submitted = text;
 
@@ -199,7 +206,7 @@ public class OverlayViewModelTests
         var names = new List<string> { "\\alpha", "\\angle" };
         var commands = new Dictionary<string, string> { { "\\alpha", "α" }, { "\\angle", "∠" } };
         var converter = CreateConverter(commandNames: names, commands: commands);
-        var vm = new OverlayViewModel(converter, CreateSettings());
+        var vm = new OverlayViewModel(converter, CreateSettings(), CreateAccentColorModule());
 
         vm.InputText = "\\a";
         vm.NavigateAutocomplete(1);
@@ -211,7 +218,7 @@ public class OverlayViewModelTests
     public void GetSelectedAutocompleteCommand_NoSelection_ReturnsNull()
     {
         var converter = CreateConverter();
-        var vm = new OverlayViewModel(converter, CreateSettings());
+        var vm = new OverlayViewModel(converter, CreateSettings(), CreateAccentColorModule());
 
         Assert.Null(vm.GetSelectedAutocompleteCommand());
     }
@@ -222,7 +229,7 @@ public class OverlayViewModelTests
         var converter = CreateConverter(convertResult: @"^{\omega}", unresolvedCommands: new List<string> { @"^{\omega}" });
         converter.Convert(@"x^{\omega}").Returns(@"^{\omega}");
         converter.LastUnresolvedCommands.Returns(new List<string> { @"^{\omega}" }.AsReadOnly());
-        var vm = new OverlayViewModel(converter, CreateSettings());
+        var vm = new OverlayViewModel(converter, CreateSettings(), CreateAccentColorModule());
 
         vm.InputText = @"x^{\omega}";
 
@@ -234,7 +241,7 @@ public class OverlayViewModelTests
     public void ResolvedCommand_NoConversionHint()
     {
         var converter = CreateConverter(convertResult: "α");
-        var vm = new OverlayViewModel(converter, CreateSettings());
+        var vm = new OverlayViewModel(converter, CreateSettings(), CreateAccentColorModule());
 
         vm.InputText = @"\alpha";
 

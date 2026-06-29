@@ -3,7 +3,6 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
-using Avalonia.Media;
 using LaTeXInserter.Abstractions;
 using LaTeXInserter.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,19 +14,6 @@ public partial class App : Application
     public static IServiceProvider Services { get; private set; } = null!;
 
     internal static void SetServiceProvider(IServiceProvider sp) => Services = sp;
-
-    /// <summary>
-    /// Sets SystemAccentColor + AccentBgBrush in Application.Resources.
-    /// The Fluent theme auto-cascades SystemAccentColor to all accent-derived brushes
-    /// (TextControlBorderBrushFocused, SystemControlHighlightAccentBrush, etc.).
-    /// Call on startup and whenever settings change.
-    /// </summary>
-    public static void ApplyAccentColor(string hex)
-    {
-        var color = Color.Parse(hex);
-        Current.Resources["SystemAccentColor"] = color;
-        Current.Resources["AccentBgBrush"] = new SolidColorBrush(color, 0.25);
-    }
 
     public override void Initialize()
     {
@@ -50,7 +36,8 @@ public partial class App : Application
 
             // Apply saved accent color so Fluent theme cascades it
             var settingsService = Services.GetRequiredService<ISettingsService>();
-            ApplyAccentColor(settingsService.Load().AccentColor);
+            var accentModule = Services.GetRequiredService<IAccentColorModule>();
+            accentModule.Apply(settingsService.Load().AccentColor);
 
             // Safety net — dispose AppManager on app exit
             desktop.Exit += (_, _) => appManager.Dispose();

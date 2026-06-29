@@ -4,13 +4,13 @@ using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using LaTeXInserter.Abstractions;
 using LaTeXInserter.Models;
-
 namespace LaTeXInserter.ViewModels;
 
 public sealed partial class OverlayViewModel : ObservableObject
 {
     private readonly ILatexConverterService _converter;
     private readonly ISettingsService _settingsService;
+    private readonly IAccentColorModule _accentColorModule;
 
     private bool _isCommitting;
     private string? _currentPrefix;
@@ -56,11 +56,19 @@ public sealed partial class OverlayViewModel : ObservableObject
     public event EventHandler<string>? SubmitRequested;
     public event EventHandler? HideRequested;
 
-    public OverlayViewModel(ILatexConverterService converter, ISettingsService settingsService)
+    public OverlayViewModel(ILatexConverterService converter, ISettingsService settingsService, IAccentColorModule accentColorModule)
     {
         _converter = converter;
         _settingsService = settingsService;
+        _accentColorModule = accentColorModule;
+        _accentColorModule.AccentColorApplied += OnAccentColorApplied;
         ApplySettings(_settingsService.Load());
+    }
+
+    private void OnAccentColorApplied(object? sender, string hex)
+    {
+        AccentColor = hex;
+        UpdateBrushes();
     }
 
     partial void OnInputTextChanged(string value)
@@ -180,7 +188,6 @@ public sealed partial class OverlayViewModel : ObservableObject
         AccentColor = settings.AccentColor;
         IsAutocompleteEnabled = settings.AutocompleteEnabled;
         UpdateBrushes();
-        App.ApplyAccentColor(settings.AccentColor);
     }
 
     public void UpdateBrushes()

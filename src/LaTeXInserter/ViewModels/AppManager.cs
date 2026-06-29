@@ -17,18 +17,14 @@ public sealed class AppManager : IDisposable
     private readonly IWindowActivator _windowActivator;
     private readonly IOverlayPositioner _overlayPositioner;
     private readonly ISubmitPasteService _submitPasteService;
-    private readonly IUpdateService _updateService;
+    private readonly IUpdateCoordinator _updateCoordinator;
     private readonly TrayIconViewModel _trayIconViewModel;
     private readonly OverlayViewModel _overlayViewModel;
-    private readonly UpToDateViewModel _upToDateViewModel;
-    private readonly UpdateViewModel _updateViewModel;
     private readonly HotkeyDialogViewModel _hotkeyDialogViewModel;
     private readonly SettingsViewModel _settingsViewModel;
     private readonly CustomMappingsViewModel _customMappingsViewModel;
 
     private OverlayWindow? _overlayWindow;
-    private UpToDateDialog? _activeUpToDateDialog;
-    private UpdateDialog? _activeUpdateDialog;
     private HotkeyDialogWindow? _activeHotkeyDialog;
     private SettingsWindow? _activeSettingsWindow;
     private CustomMappingsWindow? _activeCustomMappingsWindow;
@@ -46,11 +42,9 @@ public sealed class AppManager : IDisposable
         IWindowActivator windowActivator,
         IOverlayPositioner overlayPositioner,
         ISubmitPasteService submitPasteService,
-        IUpdateService updateService,
+        IUpdateCoordinator updateCoordinator,
         TrayIconViewModel trayIconViewModel,
         OverlayViewModel overlayViewModel,
-        UpToDateViewModel upToDateViewModel,
-        UpdateViewModel updateViewModel,
         HotkeyDialogViewModel hotkeyDialogViewModel,
         SettingsViewModel settingsViewModel,
         CustomMappingsViewModel customMappingsViewModel)
@@ -61,11 +55,9 @@ public sealed class AppManager : IDisposable
         _windowActivator = windowActivator;
         _overlayPositioner = overlayPositioner;
         _submitPasteService = submitPasteService;
-        _updateService = updateService;
+        _updateCoordinator = updateCoordinator;
         _trayIconViewModel = trayIconViewModel;
         _overlayViewModel = overlayViewModel;
-        _upToDateViewModel = upToDateViewModel;
-        _updateViewModel = updateViewModel;
         _hotkeyDialogViewModel = hotkeyDialogViewModel;
         _settingsViewModel = settingsViewModel;
         _customMappingsViewModel = customMappingsViewModel;
@@ -116,17 +108,12 @@ public sealed class AppManager : IDisposable
             _trayIconViewModel.EditMappingsRequested += OnEditMappingsRequested;
             _settingsViewModel.ChangeHotkeyRequested += OnChangeHotkeyRequested;
             _trayIconViewModel.CheckForUpdatesRequested += OnCheckForUpdatesRequested;
-            _updateViewModel.InstallRequested += OnInstallRequested;
             _trayIconViewModel.QuitRequested += OnQuitRequested;
             _overlayViewModel.SubmitRequested += OnSubmitRequested;
             _overlayViewModel.HideRequested += OnHideRequested;
             _settingsViewModel.SettingsSaved += OnSettingsSaved;
             _settingsViewModel.CloseRequested += OnSettingsCloseRequested;
             _customMappingsViewModel.CloseRequested += OnCustomMappingsCloseRequested;
-
-            // Set version text on dialog VM
-            var version = typeof(AppManager).Assembly.GetName().Version?.ToString() ?? "unknown";
-            _upToDateViewModel.SubtitleText = $"v{version}";
         }
         catch (Exception ex)
         {
@@ -138,69 +125,7 @@ public sealed class AppManager : IDisposable
     private void OnShowOverlayRequested(object? sender, EventArgs _) => ToggleOverlay();
     private async void OnCheckForUpdatesRequested(object? sender, EventArgs _)
     {
-        var version = typeof(AppManager).Assembly.GetName().Version?.ToString() ?? "unknown";
-
-        // Show dialog immediately in "checking" state
-        _upToDateViewModel.VersionText = "Checking for Updates...";
-        _upToDateViewModel.SubtitleText = string.Empty;
-        _upToDateViewModel.IsChecking = true;
-        ShowUpToDateDialog();
-
-        var result = await _updateService.CheckForUpdatesAsync();
-        _upToDateViewModel.IsChecking = false;
-
-        if (result.IsError)
-        {
-            _upToDateViewModel.VersionText = "Unable to Check for Updates";
-            _upToDateViewModel.SubtitleText = result.ErrorMessage ?? "Unknown error";
-        }
-        else if (result.IsUpdateAvailable)
-        {
-            // Close checking dialog, show update dialog instead
-            _activeUpToDateDialog?.Close();
-
-            _updateViewModel.HeadingText = $"Version {result.Version} is Available";
-            _updateViewModel.SubtitleText = $"Current: v{version}";
-            _updateViewModel.ChangelogText = result.ReleaseNotes ?? string.Empty;
-            _updateViewModel.IsDownloading = false;
-            _updateViewModel.DownloadProgress = 0;
-            _updateViewModel.StatusText = string.Empty;
-            _updateViewModel.HasError = false;
-            ShowUpdateDialog();
-        }
-        else
-        {
-            _upToDateViewModel.VersionText = "You are running the latest version";
-            _upToDateViewModel.SubtitleText = $"v{version}";
-        }
-    }
-
-    private async void OnInstallRequested(object? sender, EventArgs _)
-    {
-        if (_updateViewModel.IsDownloading) return;
-
-        _updateViewModel.IsDownloading = true;
-        _updateViewModel.HasError = false;
-        _updateViewModel.StatusText = "Downloading update...";
-
-        try
-        {
-            var progress = new Progress<int>(p =>
-            {
-                _updateViewModel.DownloadProgress = p;
-            });
-
-            await _updateService.DownloadUpdatesAsync(progress);
-
-            _updateViewModel.StatusText = "Installing and restarting...";
-            _updateService.ApplyUpdatesAndRestart();
-        }
-        catch (Exception ex)
-        {
-            _updateViewModel.IsDownloading = false;
-            _updateViewModel.HasError = true;
-            _updateViewModel.StatusText = $"Download failed: {ex.Message}";
-        }
+        await _updateCoordinator.CheckForUpdatesAsync();
     }
 
     private void OnQuitRequested(object? sender, EventArgs _) => Shutdown();
@@ -346,38 +271,6 @@ public sealed class AppManager : IDisposable
         OverlayVisibilityChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    public void ShowUpToDateDialog()
-    {
-        Dispatcher.UIThread.Post(() =>
-        {
-            if (_activeUpToDateDialog is not null)
-            {
-                _activeUpToDateDialog.Activate();
-                return;
-            }
-
-            _activeUpToDateDialog = new UpToDateDialog { DataContext = _upToDateViewModel };
-            _activeUpToDateDialog.Closed += (_, _) => _activeUpToDateDialog = null;
-            _activeUpToDateDialog.Show();
-        });
-    }
-
-    public void ShowUpdateDialog()
-    {
-        Dispatcher.UIThread.Post(() =>
-        {
-            if (_activeUpdateDialog is not null)
-            {
-                _activeUpdateDialog.Activate();
-                return;
-            }
-
-            _activeUpdateDialog = new UpdateDialog { DataContext = _updateViewModel };
-            _activeUpdateDialog.Closed += (_, _) => _activeUpdateDialog = null;
-            _activeUpdateDialog.Show();
-        });
-    }
-
     public void Shutdown()
     {
         if (_isShutdown) return;
@@ -409,7 +302,6 @@ public sealed class AppManager : IDisposable
             _trayIconViewModel.QuitRequested -= OnQuitRequested;
             _overlayViewModel.SubmitRequested -= OnSubmitRequested;
             _overlayViewModel.HideRequested -= OnHideRequested;
-            _updateViewModel.InstallRequested -= OnInstallRequested;
             _settingsViewModel.SettingsSaved -= OnSettingsSaved;
             _settingsViewModel.CloseRequested -= OnSettingsCloseRequested;
             _customMappingsViewModel.CloseRequested -= OnCustomMappingsCloseRequested;

@@ -11,6 +11,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     private readonly ISettingsService _settingsService;
     private readonly IHotkeyService _hotkeyService;
     private readonly IStartupRegistrar _startupRegistrar;
+    private readonly IAccentColorModule _accentColorModule;
 
     [ObservableProperty]
     private int _inputFontSize;
@@ -26,9 +27,6 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _startOnStartup;
-
-    partial void OnAccentColorChanged(string value)
-        => AccentColorChanged?.Invoke(this, value);
 
     public static List<AccentSwatchInfo> AccentPalette { get; } =
     [
@@ -49,6 +47,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         foreach (var s in AccentPalette)
             s.IsSelected = s == swatch;
         AccentColor = swatch.Hex;
+        _accentColorModule.Apply(swatch.Hex);
     }
 
     public string CurrentHotkeyDisplay => _hotkeyService.CurrentHotkey.ToString();
@@ -56,16 +55,17 @@ public sealed partial class SettingsViewModel : ObservableObject
     public event EventHandler<AppSettings>? SettingsSaved;
     public event EventHandler? CloseRequested;
     public event EventHandler? ChangeHotkeyRequested;
-    public event EventHandler<string>? AccentColorChanged;
 
     public SettingsViewModel(
         ISettingsService settingsService,
         IHotkeyService hotkeyService,
-        IStartupRegistrar startupRegistrar)
+        IStartupRegistrar startupRegistrar,
+        IAccentColorModule accentColorModule)
     {
         _settingsService = settingsService;
         _hotkeyService = hotkeyService;
         _startupRegistrar = startupRegistrar;
+        _accentColorModule = accentColorModule;
         var settings = _settingsService.Load();
         InputFontSize = settings.InputFontSize;
         PreviewFontSize = settings.PreviewFontSize;

@@ -31,6 +31,7 @@ internal static class Program
     {
         services.AddSingleton<ISettingsService, SettingsService>();
         services.AddSingleton<ILatexConverterService, LatexConverterService>();
+        services.AddSingleton<IAccentColorModule, AccentColorModule>();
 
         // SharpHook
         services.AddSingleton<SimpleGlobalHook>();
@@ -64,6 +65,7 @@ internal static class Program
 
         // Phase 6 — updates
         services.AddSingleton<IUpdateService, UpdateService>();
+        services.AddSingleton<IUpdateCoordinator, UpdateCoordinator>();
 
         services.AddSingleton<AppManager>();
     }
