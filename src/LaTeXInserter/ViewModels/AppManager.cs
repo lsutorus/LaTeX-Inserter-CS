@@ -85,19 +85,14 @@ public sealed class AppManager : IDisposable
             _hotkeyService.StartAsync(CancellationToken.None);
 #pragma warning restore CS4014
 
-            // 5. Sync startup registration from OS truth
+            // 5. Sync OS startup registration with settings
             try
             {
-                var isRegistered = await _startupRegistrar.GetIsRegisteredAsync();
-                if (settings.StartOnStartup != isRegistered)
-                {
-                    settings = settings with { StartOnStartup = isRegistered };
-                    _settingsService.Save(settings);
-                }
+                await _startupRegistrar.SyncRegistrationAsync(settings.StartOnStartup);
             }
             catch
             {
-                // Non-fatal: startup check failure shouldn't block init
+                // Non-fatal: startup sync failure shouldn't block init
             }
 
             // 6. Wire events

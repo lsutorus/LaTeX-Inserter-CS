@@ -103,11 +103,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         // Sync startup registration with OS
         try
         {
-            var isRegistered = await _startupRegistrar.GetIsRegisteredAsync();
-            if (StartOnStartup && !isRegistered)
-                await _startupRegistrar.RegisterAsync();
-            else if (!StartOnStartup && isRegistered)
-                await _startupRegistrar.UnregisterAsync();
+            await _startupRegistrar.SyncRegistrationAsync(StartOnStartup);
         }
         catch
         {

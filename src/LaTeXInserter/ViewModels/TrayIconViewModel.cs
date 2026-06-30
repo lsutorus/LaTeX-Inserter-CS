@@ -10,7 +10,6 @@ public sealed partial class TrayIconViewModel
 {
     private readonly IHotkeyService _hotkeyService;
     private readonly ISettingsService _settingsService;
-    private readonly ILatexConverterService _latexConverter;
 
     private readonly NativeMenuItem _showHideOverlayItem;
     private readonly NativeMenuItem _settingsItem;
@@ -28,12 +27,10 @@ public sealed partial class TrayIconViewModel
 
     public TrayIconViewModel(
         IHotkeyService hotkeyService,
-        ISettingsService settingsService,
-        ILatexConverterService latexConverter)
+        ISettingsService settingsService)
     {
         _hotkeyService = hotkeyService;
         _settingsService = settingsService;
-        _latexConverter = latexConverter;
 
         _showHideOverlayItem = new NativeMenuItem($"Show/Hide Overlay ({hotkeyService.CurrentHotkey})");
         _settingsItem = new NativeMenuItem("Settings...");

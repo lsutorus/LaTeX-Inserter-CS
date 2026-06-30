@@ -32,6 +32,15 @@ internal sealed class WindowsStartupRegistrar : IStartupRegistrar
         return Task.CompletedTask;
     }
 
+    public async Task SyncRegistrationAsync(bool desired)
+    {
+        var isRegistered = await GetIsRegisteredAsync();
+        if (desired && !isRegistered)
+            await RegisterAsync();
+        else if (!desired && isRegistered)
+            await UnregisterAsync();
+    }
+
     private static string GetExePath()
     {
         // Velopack installed context: use root stub executable

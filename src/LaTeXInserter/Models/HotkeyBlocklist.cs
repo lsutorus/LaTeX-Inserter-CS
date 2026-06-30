@@ -1,5 +1,4 @@
 using System.Collections.Frozen;
-using LaTeXInserter.Models;
 using SharpHook.Data;
 
 namespace LaTeXInserter.Models;
@@ -10,7 +9,7 @@ public static class HotkeyBlocklist
 
     public static bool IsBlocked(HotkeyChord chord)
     {
-        return Blocked.Contains(Services.HotkeyNormalizer.Normalize(chord));
+        return Blocked.Contains(chord);
     }
 
     private static FrozenSet<HotkeyChord> CreateBlocklist()
@@ -61,6 +60,6 @@ public static class HotkeyBlocklist
             new(ModifierMask.Windows, KeyCode.VcRight),
         };
 
-        return entries.Select(Services.HotkeyNormalizer.Normalize).ToFrozenSet();
+        return entries.ToFrozenSet();
     }
 }
