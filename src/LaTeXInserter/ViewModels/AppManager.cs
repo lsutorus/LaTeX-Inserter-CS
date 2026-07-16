@@ -172,12 +172,20 @@ public sealed class AppManager : IDisposable
 
         Dispatcher.UIThread.Post(() =>
         {
+            // Refresh singleton VM from disk + capture revert snapshot before showing.
+            _settingsViewModel.Open();
+
             _activeSettingsWindow = new SettingsWindow
             {
                 DataContext = _settingsViewModel
             };
 
-            _activeSettingsWindow.Closed += (_, _) => _activeSettingsWindow = null;
+            // Fires for Save, Cancel, and X — VM reverts any unsaved live changes.
+            _activeSettingsWindow.Closed += (_, _) =>
+            {
+                _settingsViewModel.OnClosed();
+                _activeSettingsWindow = null;
+            };
             _activeSettingsWindow.Show();
         });
     }

@@ -33,7 +33,7 @@ Requires admin on Windows (keyboard hooks require elevation).
 - Velopack creates GitHub releases with tag name WITHOUT `v` prefix (e.g. `0.0.5` not `v0.0.5`)
 - Release assets: Velopack bundle + SHA256
 - Draft releases auto-created by `vpk upload`; publish manually via `gh release edit <tag> --draft=false`
-- Current version: 0.0.9
+- Current version: 0.0.10
 
 ## Architecture & Documentation
 
@@ -55,7 +55,7 @@ Requires admin on Windows (keyboard hooks require elevation).
 - **Default commands**: `Commands.json` embedded resource, loaded via source-gen deserializer
 - **Autocomplete**: TextBox + Popup + ListBox (IntelliSense pattern), NOT AutoCompleteBox
 - **Settings window**: Non-modal singleton via AppManager, native OS chrome, `CanResize = false` in code-behind (Avalonia 12 ResizeMode XML attribute fails with compiled bindings AVLN2000). Live reload overlay via `SettingsSaved` event → `OverlayViewModel.ApplySettings()`. Hotkey change + startup toggle moved from tray to Settings (ChangeHotkeyRequested routed via AppManager). Startup sync via `IStartupRegistrar.SyncRegistrationAsync()` on init and save.
-- **Accent color**: hex string in settings → `IAccentColorModule.Apply(hex)` sets App resources + persists + raises `AccentColorApplied` event. `OverlayViewModel` subscribes to event, parses hex to `IBrush` (solid + 0.25 opacity for selection bg). No `App.ApplyAccentColor()` static, no `AccentColorChanged` event on SettingsViewModel.
+- **Accent color**: hex string in settings → `IAccentColorModule.Apply(hex)` sets App resources + raises `AccentColorApplied` event (persist is NOT done here — it lives in `SettingsViewModel.SaveAsync` via `ISettingsService.Save`). `OverlayViewModel` subscribes to event, parses hex to `IBrush` (solid + 0.25 opacity for selection bg). Swatch click (`SelectSwatch`) does NOT apply live — accent takes effect on Save only, so Cancel/X reverts the live preview. `SettingsViewModel.Open()` reloads from disk + captures a revert snapshot; `OnClosed()` reverts any unsaved live changes (accent + fields) for Cancel/X, no-op after Save. No `App.ApplyAccentColor()` static, no `AccentColorChanged` event on SettingsViewModel.
 - **Font sizes**: Two independent settings — `InputFontSize` (input TextBox + autocomplete dropdown) and `PreviewFontSize` (unicode preview TextBlock)
 - **Update check UX**: Immediate dialog with indeterminate progress bar on "Check for Updates" click; content swaps to result once check completes (up-to-date / error / update available)
 
@@ -76,7 +76,7 @@ Requires admin on Windows (keyboard hooks require elevation).
 - **No `ResizeMode` in AXAML** — Avalonia 12 compiled bindings fail with AVLN2000; set `CanResize` property in code-behind instead
 - **No Models importing Services** — `HotkeyBlocklist` uses record value equality, not `HotkeyNormalizer.Normalize()`. Services→Models dependency direction is forbidden.
 - **No `App.ApplyAccentColor()` static** — use `IAccentColorModule.Apply(hex)` from DI
-- **No `AccentColorChanged` event** — removed; `SettingsViewModel.SelectSwatch()` calls `IAccentColorModule.Apply()` which raises `AccentColorApplied`. OverlayVM subscribes directly.
+- **No `AccentColorChanged` event** — removed; `SettingsViewModel.SaveAsync()` calls `IAccentColorModule.Apply()` which raises `AccentColorApplied` (on Save only, not on swatch click). OverlayVM subscribes directly.
 - **No inline startup sync** — use `IStartupRegistrar.SyncRegistrationAsync(bool desired)` instead of compare-then-register/unregister pattern
 - **No platform P/Invoke in Views** — overlay positioning uses `IOverlayPositioner.PositionOverlay(window)`, not direct `NativeMethods.GetCursorPos` in code-behind
 - **No `UpdateManager.CheckForUpdatesAsync` for the user-facing check** — Velopack downloads `releases.<channel>.json` from every release serially; each GitHub signed-asset download can stall ~20s (token `nbf`/clock-skew), blowing the 10s timeout → spurious "timed out" even when up-to-date. Use a single GitHub Releases API `/releases/latest` call + `Velopack.SemanticVersion` compare. Velopack's check is used only to resolve `UpdateInfo` for the install path.

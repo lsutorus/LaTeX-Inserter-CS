@@ -13,6 +13,11 @@ public sealed partial class SettingsViewModel : ObservableObject
     private readonly IStartupRegistrar _startupRegistrar;
     private readonly IAccentColorModule _accentColorModule;
 
+    // Settings take effect on Save only. On any unsaved close (Cancel / X),
+    // live changes revert to this snapshot so the app state matches disk.
+    private AppSettings _loadedSettings = AppSettings.Default;
+    private bool _savePending;
+
     [ObservableProperty]
     private int _inputFontSize;
 
@@ -47,7 +52,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         foreach (var s in AccentPalette)
             s.IsSelected = s == swatch;
         AccentColor = swatch.Hex;
-        _accentColorModule.Apply(swatch.Hex);
+        // No live Apply: accent takes effect on Save, matching every other setting.
+        // Checkmark fill therefore does not recolor until Save.
     }
 
     public string CurrentHotkeyDisplay => _hotkeyService.CurrentHotkey.ToString();
@@ -66,16 +72,9 @@ public sealed partial class SettingsViewModel : ObservableObject
         _hotkeyService = hotkeyService;
         _startupRegistrar = startupRegistrar;
         _accentColorModule = accentColorModule;
-        var settings = _settingsService.Load();
-        InputFontSize = settings.InputFontSize;
-        PreviewFontSize = settings.PreviewFontSize;
-        AccentColor = settings.AccentColor;
-        AutocompleteEnabled = settings.AutocompleteEnabled;
-        StartOnStartup = settings.StartOnStartup;
 
-        // Mark initial swatch selection
-        foreach (var s in AccentPalette)
-            s.IsSelected = s.Hex == settings.AccentColor;
+        // Initial refresh from disk (also acts as first-open snapshot).
+        Open();
 
         _hotkeyService.HotkeyChanged += OnHotkeyChanged;
     }
@@ -83,14 +82,60 @@ public sealed partial class SettingsViewModel : ObservableObject
     private void OnHotkeyChanged(object? sender, HotkeyChord _)
         => OnPropertyChanged(nameof(CurrentHotkeyDisplay));
 
+    // Called each time the Settings window opens. Refreshes the singleton VM from
+    // disk and captures a revert snapshot, so Cancel / X never leaves stale or
+    // unsaved state behind.
+    public void Open()
+    {
+        var settings = _settingsService.Load();
+        _loadedSettings = settings;
+        _savePending = false;
+
+        InputFontSize = settings.InputFontSize;
+        PreviewFontSize = settings.PreviewFontSize;
+        AccentColor = settings.AccentColor;
+        AutocompleteEnabled = settings.AutocompleteEnabled;
+        StartOnStartup = settings.StartOnStartup;
+
+        foreach (var s in AccentPalette)
+            s.IsSelected = s.Hex == settings.AccentColor;
+
+        // Restore live accent resources to the persisted value in case a prior
+        // unsaved close left a preview applied.
+        _accentColorModule.Apply(settings.AccentColor);
+    }
+
+    // Called when the window closes for any reason (Save / Cancel / X). On an
+    // unsaved close, revert the live accent preview back to the persisted value
+    // (the overlay follows via AccentColorApplied).
+    public void OnClosed()
+    {
+        if (!_savePending)
+        {
+            _accentColorModule.Apply(_loadedSettings.AccentColor);
+            ResetFieldsToLoaded();
+        }
+        _savePending = false;
+    }
+
+    private void ResetFieldsToLoaded()
+    {
+        InputFontSize = _loadedSettings.InputFontSize;
+        PreviewFontSize = _loadedSettings.PreviewFontSize;
+        AccentColor = _loadedSettings.AccentColor;
+        AutocompleteEnabled = _loadedSettings.AutocompleteEnabled;
+        StartOnStartup = _loadedSettings.StartOnStartup;
+        foreach (var s in AccentPalette)
+            s.IsSelected = s.Hex == _loadedSettings.AccentColor;
+    }
+
     [RelayCommand]
     private void ChangeHotkey() => ChangeHotkeyRequested?.Invoke(this, EventArgs.Empty);
 
     [RelayCommand]
     private async Task SaveAsync()
     {
-        var settings = _settingsService.Load();
-        var updated = settings with
+        var updated = _loadedSettings with
         {
             InputFontSize = InputFontSize,
             PreviewFontSize = PreviewFontSize,
@@ -110,6 +155,11 @@ public sealed partial class SettingsViewModel : ObservableObject
             // Non-fatal: startup reg failure shouldn't block save
         }
 
+        // Apply accent to Fluent theme resources + notify overlay (live effect on Save).
+        _accentColorModule.Apply(AccentColor);
+
+        _savePending = true;
+        _loadedSettings = updated;
         SettingsSaved?.Invoke(this, updated);
         CloseRequested?.Invoke(this, EventArgs.Empty);
     }
