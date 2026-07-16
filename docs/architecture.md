@@ -131,7 +131,9 @@ Registered services:
 
 ### Velopack (Auto-updater)
 
-- **Backend**: GitHub Releases via `UpdateManager.GitHub("lsutorus/LaTeX-Inserter")`
+- **Backend**: GitHub Releases via `GithubSource` (`lsutorus/LaTeX-Inserter-CS`)
+- **Update check (fast path)**: `UpdateService.CheckForUpdatesAsync` does NOT call Velopack's `CheckForUpdatesAsync` for the user-facing check. Velopack's check downloads the per-release feed (`releases.<channel>.json`) from every release serially, and each GitHub signed-asset download can stall ~20s (token `nbf` / clock-skew retry), so the full walk regularly exceeds the 10s budget and the dialog reports a timeout even when up-to-date. Instead the check is a single GitHub Releases API call — `GET /repos/{owner}/{repo}/releases/latest` — comparing the latest stable `tag_name` (parsed as `Velopack.SemanticVersion`) against the installed version (`UpdateManager.CurrentVersion`). ~0.4s, one HTTP request, no serial feed walk.
+- **Install path (Velopack)**: When an update is found, `CheckForUpdatesAsync` kicks off Velopack's `UpdateManager.CheckForUpdatesAsync` in the background to resolve the `UpdateInfo` needed for download. `DownloadUpdatesAsync` awaits that (or a fresh check) before `DownloadUpdatesAsync(UpdateInfo, progress)` + `ApplyUpdatesAndRestart`. Velopack still handles the actual package fetch/apply in place.
 - **Startup hook**: `VelopackApp.Build().Run()` at absolute start of `Program.cs`, before Avalonia init
 - **UI**: Custom Avalonia dialogs (`UpToDateDialog`, `UpdateDialog`), not Velopack's built-in UI
 - **Thread safety**: Velopack download runs on background thread → `Dispatcher.UIThread.Post` for progress updates

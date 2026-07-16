@@ -12,7 +12,7 @@ Cross-platform system-tray utility. Configurable hotkey (default Ctrl+Alt+M) ope
 - **UI**: Avalonia UI (headless, borderless floating popup, TrayIcon)
 - **MVVM**: CommunityToolkit.Mvvm (source-gen `ObservableObject`, `RelayCommand`)
 - **Hotkeys**: SharpHook (global hooks + input simulation)
-- **Updater**: Velopack 1.2.0 (GitHub Releases backend, `GithubSource`, 10s timeout on check)
+- **Updater**: Velopack 1.2.0 (GitHub Releases backend, `GithubSource`). User-facing check uses GitHub Releases API (`/releases/latest`) + `Velopack.SemanticVersion` compare, NOT Velopack's `CheckForUpdatesAsync` (which serially downloads every release's `releases.<channel>.json` and stalls past the 10s timeout). 10s outer timeout on the API call. Velopack `UpdateManager.CheckForUpdatesAsync` is only used to resolve the `UpdateInfo` for the install path.
 - **DI**: Microsoft.Extensions.DependencyInjection (strict constructor injection)
 - **Data**: System.Text.Json with source generators (`JsonSerializerContext`)
 - **P/Invoke**: `[LibraryImport]` only (no legacy `[DllImport]`)
@@ -33,7 +33,7 @@ Requires admin on Windows (keyboard hooks require elevation).
 - Velopack creates GitHub releases with tag name WITHOUT `v` prefix (e.g. `0.0.5` not `v0.0.5`)
 - Release assets: Velopack bundle + SHA256
 - Draft releases auto-created by `vpk upload`; publish manually via `gh release edit <tag> --draft=false`
-- Current version: 0.0.7
+- Current version: 0.0.9
 
 ## Architecture & Documentation
 
@@ -79,6 +79,7 @@ Requires admin on Windows (keyboard hooks require elevation).
 - **No `AccentColorChanged` event** — removed; `SettingsViewModel.SelectSwatch()` calls `IAccentColorModule.Apply()` which raises `AccentColorApplied`. OverlayVM subscribes directly.
 - **No inline startup sync** — use `IStartupRegistrar.SyncRegistrationAsync(bool desired)` instead of compare-then-register/unregister pattern
 - **No platform P/Invoke in Views** — overlay positioning uses `IOverlayPositioner.PositionOverlay(window)`, not direct `NativeMethods.GetCursorPos` in code-behind
+- **No `UpdateManager.CheckForUpdatesAsync` for the user-facing check** — Velopack downloads `releases.<channel>.json` from every release serially; each GitHub signed-asset download can stall ~20s (token `nbf`/clock-skew), blowing the 10s timeout → spurious "timed out" even when up-to-date. Use a single GitHub Releases API `/releases/latest` call + `Velopack.SemanticVersion` compare. Velopack's check is used only to resolve `UpdateInfo` for the install path.
 
 ## Agent skills
 
