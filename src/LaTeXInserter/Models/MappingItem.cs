@@ -48,8 +48,21 @@ public sealed partial class MappingItem : ObservableObject
         else
         {
             _preEditCommand = Command;
+            _preEditCharacter = Character;
         }
     }
 
+    /// <summary>
+    /// Reverts Command/Character to their pre-edit values and exits edit mode.
+    /// Called on Escape during inline edit.
+    /// </summary>
+    public void CancelEdit()
+    {
+        Command = _preEditCommand;
+        Character = _preEditCharacter;
+        IsEditing = false; // OnIsEditingChanged(false): Command non-blank here → no-op restore
+    }
+
     private string _preEditCommand = string.Empty;
+    private string _preEditCharacter = string.Empty;
 }

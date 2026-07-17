@@ -9,6 +9,13 @@
         Width="350"
         WindowStartupLocation="CenterScreen">
 
+    <Window.Resources>
+        <!-- Neutralize the red/orange unchecked-CheckBox hover: faint gray only. -->
+        <SolidColorBrush x:Key="CheckBoxBackgroundUncheckedPointerOver" Color="#333333" />
+        <SolidColorBrush x:Key="CheckBoxBorderBrushUncheckedPointerOver" Color="#888888" />
+        <SolidColorBrush x:Key="CheckBoxForegroundUncheckedPointerOver" Color="#CCCCCC" />
+    </Window.Resources>
+
     <ScrollViewer>
         <StackPanel Margin="16" Spacing="16">
 
@@ -45,8 +52,11 @@
                                         Classes="accent-ring">
                                     <Button Width="24" Height="24"
                                             Classes="accent-swatch"
-                                            Background="{Binding Brush}"
-                                            Click="OnSwatchClick" />
+                                            Click="OnSwatchClick">
+                                        <!-- Fill the swatch with the accent color via a child
+                                             Border so the parent Button's hover stays neutral. -->
+                                        <Border Background="{Binding Brush}" CornerRadius="4" />
+                                    </Button>
                                 </Border>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>

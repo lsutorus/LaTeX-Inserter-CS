@@ -56,14 +56,25 @@
         <Style Selector="Border.accent-ring">
             <Setter Property="BorderBrush" Value="Transparent" />
         </Style>
+        <Style Selector="Border.accent-ring:pointerover">
+            <Setter Property="BorderBrush" Value="#888888" />
+        </Style>
         <Style Selector="Border.accent-ring.accent-selected">
             <Setter Property="BorderBrush" Value="White" />
         </Style>
+        <Style Selector="Border.accent-ring.accent-selected:pointerover">
+            <Setter Property="BorderBrush" Value="White" />
+        </Style>
         <Style Selector="Button.accent-swatch">
+            <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderBrush" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="BorderThickness" Value="0" />
             <Setter Property="CornerRadius" Value="4" />
             <Setter Property="Padding" Value="0" />
+        </Style>
+        <!-- Keep swatch fill as the accent color on hover (no Fluent darkening) -->
+        <Style Selector="Button.accent-swatch:pointerover">
+            <Setter Property="Background" Value="Transparent" />
         </Style>
     </Application.Styles>
 
