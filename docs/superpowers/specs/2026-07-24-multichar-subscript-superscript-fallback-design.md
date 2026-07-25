@@ -242,19 +242,19 @@ group.
 | `^{n2}` | `ⁿ²` | no |
 | `_{bad}` | `bₐd` | yes — records `_{bad}` |
 | `x_q` | `xq` | yes — records `_{q}` |
-| `x^z` | `xz` | yes — records `^{z}` |
+| `x^S` | `xS` | yes — records `^{S}` |
 | `^{\gamma}` | `ᵞ` | no |
 
 ### Missing-glyph sets (informational, derived from current `Commands.json`)
 
-Subscript (lowercase): `b c d f g q w y z`.
-Subscript (uppercase): most uppercase letters are absent; only `A E H I J K L
-M N O P R S T U V X` have glyphs.
-Superscript (lowercase): `z` only.
-Superscript (uppercase): `C Q` (mod Hangul-derived `ꟲ` / `ꟳ`) and `B D E F G
-H I J K L M N O P R T U V W` use modifier-style or phonetic-extension glyphs;
-the per-char key set is what determines availability at runtime, no hard-coded
-list is added in code.
+Subscript (lowercase) **has glyphs**: `a e h i j k l m n o p r s t u v x` — so
+missing glyphs: `b c d f g q w y z`.
+Subscript (uppercase): most uppercase absent; only `A E H I J K L M N O P R S T
+U V X` have glyphs.
+Superscript (lowercase): **all** `a`–`z` have glyphs (e.g. `^{z}`→ᶻ,
+`^{q}`→𐞥) — no lowercase miss exists.
+Superscript (uppercase) **missing glyphs**: `S X Y Z` (the remaining uppercase
+letters all have glyphs, some via phonetic-extension forms like `ꟲ`/`ꟳ`);
 
 These sets are **not** hard-coded anywhere in the implementation; the
 `_commands.TryGetValue` call is the single source of truth. The sets above
