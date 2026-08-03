@@ -441,6 +441,31 @@ public sealed class LatexConverterService : ILatexConverterService
         return leaf;
     }
 
+    /// <summary>
+    /// Best-effort per-character fallback for "_" or "^" over a group whose
+    /// combined lookups (resolved + raw) both missed. For each char in
+    /// <paramref name="content"/> looks up the existing single-char key
+    /// "{cmd}{{{c}}}" in <c>_commands</c> and appends the glyph when present;
+    /// otherwise appends the plain char. <paramref name="hadMiss"/> is true iff
+    /// any char had no glyph, so the caller can record the unresolved hint.
+    /// </summary>
+    private (string Result, bool HadMiss) ConvertSubSupChars(char cmd, string content)
+    {
+        var sb = new StringBuilder(content.Length);
+        var hadMiss = false;
+        foreach (var c in content)
+        {
+            if (_commands.TryGetValue($"{cmd}{{{c}}}", out var glyph))
+                sb.Append(glyph);
+            else
+            {
+                sb.Append(c);
+                hadMiss = true;
+            }
+        }
+        return (sb.ToString(), hadMiss);
+    }
+
     private static Dictionary<string, string> LoadDefaultCommands()
     {
         var assembly = typeof(LatexConverterService).Assembly;
