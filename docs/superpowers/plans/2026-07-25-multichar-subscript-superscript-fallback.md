@@ -86,7 +86,7 @@ Why safe: verified there is no standalone `"_"` or `"^"` key in `Commands.json` 
 - [ ] **Step 4: Run the new test + existing sub/sup tests to verify**
 
 Run: `dotnet test tests/LaTeXInserter.Tests --filter "FullyQualifiedName~Subscript|FullyQualifiedName~Superscript|FullyQualifiedName~SubscriptGroupNoGlyph_NotDoubleReported"`
-Expected: PASS for `SubscriptGroupNoGlyph_NotDoubleReported` (now empty). `Superscript`, `Subscript`, `SuperscriptCommand`, `SubscriptCommand` still PASS — for `x^2`/`x_i` the combined key hits, so step 5 never ran; for `x^{\gamma}` the raw retry hits.
+Expected: PASS for `SubscriptGroupNoGlyph_NotDoubleReported` (now empty) and for `Superscript`/`Subscript` (single-char `x^2`/`x_i` — their combined keys `^{2}`/`_{i}` still hit, step 5 never reached). **`SuperscriptCommand` and `SubscriptCommand` go RED at this task** — expected intermediate state. After Task 1, `HandleCmds` step 5 is skipped for `_`/`^` (now in `IgnoreAsFallback`), so `HandleCmds` returns the bare leaf (e.g. `𝛾`) instead of the raw `^{𝛾}` form; the old raw-retry block (gated on `result == $"cmd{{groupContent}}"`) no longer fires, so the combined raw key `^{\gamma}` is never consulted. Task 3 replaces that dead raw-retry with explicit precedence lookups and **restores these two tests green**. Do not patch the retry here.
 
 - [ ] **Step 5: Commit**
 
@@ -287,7 +287,7 @@ else if (ch == '_' || ch == '^')
 }
 ```
 
-Replace the inner `if (... == '{')` block's body — specifically the `if (result == ...)` retry block — to add the per-char fallback as a final `else`. Keep `rawGroupContent` capture (already computed above). New body of the `{` branch:
+Replace the inner `if (... == '{')` block's body. The old code nests everything inside a raw-retry gate (`if (result == ...)`) that is **dead after Task 1** (Task 1 put `^`/`_` in `IgnoreAsFallback`, so `HandleCmds` no longer returns the raw `cmd{leaf}` form; the gate's condition can never be true). Replace the whole group-content handling with explicit precedence lookups — no `HandleCmds` call, no dead gate:
 
 ```csharp
 if (_hasArg.Contains(cmd) && pos < span.Length && span[pos] == '{')
@@ -295,39 +295,33 @@ if (_hasArg.Contains(cmd) && pos < span.Length && span[pos] == '{')
     var openBrace = pos; // save position of '{'
     var rawGroupContent = CaptureRawGroup(span, openBrace);
     var groupContent = ParseGroup(span, ref pos, depth + 1);
-    var result = HandleCmds([cmd], groupContent);
 
-    // If unresolved (returned raw "^{...}" or "_{...}"), retry with raw group text.
-    // Handles ^{\gamma} where ParseGroup resolves \gamma before HandleCmds sees
-    // the combined key "^{\gamma}".
-    if (result == $"{cmd}{{{groupContent}}}")
+    // Precedence (highest -> lowest):
+    //  P1: combined key on resolved content (custom override e.g. ^{foo}).
+    //  P2: combined key on raw content (e.g. ^{\gamma} -> ᵞ, _{\gamma} -> ᵧ).
+    //  P3: per-char best-effort fallback (_{test} -> ₜₑₛₜ, ^{n2} -> ⁿ²).
+    //  P4: missing-glyph chars kept as plain; raw form recorded for the hint.
+    if (_commands.TryGetValue($"{cmd}{{{groupContent}}}", out var resolvedHit))
+        sb.Append(resolvedHit);
+    else if (_commands.TryGetValue($"{cmd}{{{rawGroupContent}}}", out var rawHit))
+        sb.Append(rawHit);
+    else
     {
-        var rawResult = HandleCmds([cmd], rawGroupContent);
-        if (rawResult != $"{cmd}{{{rawGroupContent}}}")
-        {
-            result = rawResult;
-        }
-        else
-        {
-            // Per-char best-effort fallback: _{test} -> ₜₑₛₜ, ^{n2} -> ⁿ².
-            // Missing-glyph chars kept as plain; original raw form recorded
-            // as unresolved so the overlay hint still fires.
-            var (fb, miss) = ConvertSubSupChars(ch, groupContent);
-            result = fb;
-            if (miss)
-                _unresolvedCommands.Add($"{cmd}{{{rawGroupContent}}}");
-        }
+        var (fb, miss) = ConvertSubSupChars(ch, groupContent);
+        sb.Append(fb);
+        if (miss)
+            _unresolvedCommands.Add($"{cmd}{{{rawGroupContent}}}");
     }
-
-    sb.Append(result);
 }
 ```
 
-Note `ch` is the char (`'_'`/`'^'`) in scope at the top of the `else if (ch == '_' || ch == '^')` block; pass it directly to `ConvertSubSupChars(ch, …)` — avoids `cmd[0]`.
+`ch` is the trigger char (`'_'`/`'^'`) already in scope at the top of the `else if (ch == '_' || ch == '^')` block; pass it directly to `ConvertSubSupChars(ch, …)`. `cmd` (`ch.ToString()`) is still used for the lookup keys. Note `HandleCmds` is **not** called in the group branch anymore — the combined-key lookups above are strictly more precise for `_`/`^` (cmd is always `_` or `^`, never a modifier, so `HandleCmds`'s modifier/leaf-resolution branches were irrelevant here). Keep the `else if (pos < span.Length)` leaf branch and the trailing `else` unchanged by this task — Task 4 rewrites the leaf branch.
 
-- [ ] **Step 4: Apply the identical change to the `ParseGroup` `_`/`^` branch**
+Why this restores the two Task-1 regressions: `^{\gamma}` → `groupContent`="𝛾" (ParseGroup resolves `\gamma`), `rawGroupContent`=`\gamma`; P1 `^{𝛾}` miss, P2 `^{\gamma}` → ᵞ. `x_{\gamma}` analogous → ᵧ.
 
-The `ParseGroup` method has the same `_`/`^` handler (~lines 326–345). Apply the exact same edit: after the raw-retry `if (rawResult != …)` add an `else` with the `ConvertSubSupChars` fallback + `_unresolvedCommands.Add` on miss. In `ParseGroup` the trigger char local is also named `ch` (see `var ch = span[pos];` ~line 279), so the call is identical: `ConvertSubSupChars(ch, groupContent)`.
+- [ ] **Step 4: Apply the identical change to the `ParseGroup` `_`/`^` group branch**
+
+The `ParseGroup` method has the same `_`/`^` group handler (~lines 326–345) with the same dead raw-retry gate. Apply the exact same rewrite: replace its `HandleCmds` + raw-retry group body with the explicit P1/P2/fallback block above. In `ParseGroup` the trigger char local is also named `ch` (see `var ch = span[pos];` ~line 279), so the call and keys are identical (`ConvertSubSupChars(ch, groupContent)`, `$"{cmd}{{{...}}}"`). Leave its single-char leaf branch and trailing `else` for Task 4.
 
 - [ ] **Step 5: Run the 3 group tests + the double-report test**
 
@@ -417,7 +411,7 @@ else if (pos < span.Length)
 }
 ```
 
-New:
+New — direct combined-key lookup (post-Task-1 `HandleCmds` step 5 is skipped for `_`/`^`, so `HandleCmds([cmd], leaf)` returns the bare `leaf` on miss; detect miss by `result == leaf`, since no glyph equals its own letter and `_commands` has no single-raw-char keys):
 
 ```csharp
 else if (pos < span.Length)
@@ -425,21 +419,23 @@ else if (pos < span.Length)
     // Subscript/superscript of single char
     var leaf = span[pos].ToString();
     pos++;
-    var result = HandleCmds([cmd], leaf);
-    if (result == $"{cmd}{{{leaf}}}")
+    if (_commands.TryGetValue($"{cmd}{{{leaf}}}", out var glyphHit))
+        sb.Append(glyphHit);
+    else
     {
-        // No single-char glyph: best-effort -> plain char (strip braces),
-        // matching the multi-char group rule. Record for the overlay hint.
-        result = leaf;
+        // No single-char glyph: strip braces, keep plain char
+        // (consistent with the multi-char best-effort rule).
+        sb.Append(leaf);
         _unresolvedCommands.Add($"{cmd}{{{leaf}}}");
     }
-    sb.Append(result);
 }
 ```
 
+(No `HandleCmds`/`result` temp needed — mirrors the explicit-lookup shape of the group branch for the same reason: the dead raw-retry gate does not apply to single-char.) `Subscript` (`x_i`→`xᵢ`) and `Superscript` (`x^2`→`x²`) stay green: `_{i}`/`^{2}` hit, glyph appended.
+
 - [ ] **Step 4: Apply the identical edit to the `ParseGroup` single-char leaf branch**
 
-`ParseGroup`'s `else if (pos < span.Length)` (~lines 346–352). Identical change (replace `result = HandleCmds([cmd], leaf);` + `sb.Append(result);` with the miss-check + plain fallback + `_unresolvedCommands.Add`).
+`ParseGroup`'s `else if (pos < span.Length)` (~lines 346–352). Apply the exact same rewrite (replace `var leaf = …; pos++; var result = HandleCmds([cmd], leaf); sb.Append(result);` with the direct-lookup `if/else` block above). Same `cmd`/`leaf` locals in scope.
 
 - [ ] **Step 5: Run the 2 leaf tests**
 
@@ -449,7 +445,7 @@ Expected: PASS — `x_q`→`xq` + `_{q}` recorded; `x^S`→`xS` + `^{S}` recorde
 - [ ] **Step 6: Run the full converter test class**
 
 Run: `dotnet test tests/LaTeXInserter.Tests --filter "FullyQualifiedName~LatexConverterServiceTests"`
-Expected: ALL PASS, including `Subscript` (`x_i`→`xᵢ`, i has glyph so `HandleCmds` hits combined key, miss-branch not taken) and `Superscript` (`x^2`→`x²`).
+Expected: ALL PASS, including `Subscript` (`x_i`→`xᵢ` via `_{i}` hit) and `Superscript` (`x^2`→`x²` via `^{2}` hit).
 
 - [ ] **Step 7: Commit**
 
