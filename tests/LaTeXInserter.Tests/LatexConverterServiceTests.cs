@@ -140,15 +140,33 @@ public class LatexConverterServiceTests
     [Fact]
     public void SubscriptGroupNoGlyph_NotDoubleReported()
     {
-        // After all tasks: _{bad} -> bₐd with exactly one unresolved entry.
-        // Before IgnoreAsFallback change: HandleCmds step 5 records _{bad} AND
-        // (later) the fallback records it again -> count >= 2 or the raw form
-        // leaks. This test guards against the step-5 pre-recording.
         var svc = CreateService();
         var result = svc.Convert("_{bad}");
-        // behavior lands in Task 3; for Task 1 just assert no entry duplicated:
-        // after Task 1 alone, step 5 stops recording, so entry count drops to 0
-        // (fallback not yet added). Re-verified at end.
-        Assert.Empty(svc.LastUnresolvedCommands);
+        Assert.Equal("bₐd", result);
+        // exactly one entry, not two
+        Assert.Equal(1, svc.LastUnresolvedCommands.Count(x => x == "_{bad}"));
+    }
+
+    [Fact]
+    public void SubscriptGroup()
+    {
+        // _{test}: t,e,s,t all have subscript glyphs -> ₜₑₛₜ
+        Assert.Equal("ₜₑₛₜ", CreateService().Convert("_{test}"));
+    }
+
+    [Fact]
+    public void SuperscriptGroup()
+    {
+        // ^{n2}: n->ⁿ, 2->² -> ⁿ²
+        Assert.Equal("ⁿ²", CreateService().Convert("^{n2}"));
+    }
+
+    [Fact]
+    public void SubscriptGroupPartialGlyph()
+    {
+        // _{bad}: b miss, a->ₐ, d miss -> bₐd; records _{bad} in unresolved
+        var svc = CreateService();
+        Assert.Equal("bₐd", svc.Convert("_{bad}"));
+        Assert.Contains("_{bad}", svc.LastUnresolvedCommands);
     }
 }

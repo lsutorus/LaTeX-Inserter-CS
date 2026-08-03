@@ -188,19 +188,23 @@ public sealed class LatexConverterService : ILatexConverterService
                     var openBrace = pos; // save position of '{'
                     var rawGroupContent = CaptureRawGroup(span, openBrace);
                     var groupContent = ParseGroup(span, ref pos, depth + 1);
-                    var result = HandleCmds([cmd], groupContent);
 
-                    // If unresolved (returned raw "^{...}" or "_{...}"), retry with raw group text.
-                    // This handles cases like ^{\gamma} where ParseGroup resolves \gamma→Unicode
-                    // before HandleCmds can look up the combined key "^{\gamma}".
-                    if (result == $"{cmd}{{{groupContent}}}")
+                    // Precedence (highest -> lowest):
+                    //  P1: combined key on resolved content (custom override e.g. ^{foo}).
+                    //  P2: combined key on raw content (e.g. ^{\gamma} -> ᵞ, _{\gamma} -> ᵧ).
+                    //  P3: per-char best-effort fallback (_{test} -> ₜₑₛₜ, ^{n2} -> ⁿ²).
+                    //  P4: missing-glyph chars kept as plain; raw form recorded for the hint.
+                    if (_commands.TryGetValue($"{cmd}{{{groupContent}}}", out var resolvedHit))
+                        sb.Append(resolvedHit);
+                    else if (_commands.TryGetValue($"{cmd}{{{rawGroupContent}}}", out var rawHit))
+                        sb.Append(rawHit);
+                    else
                     {
-                        var rawResult = HandleCmds([cmd], rawGroupContent);
-                        if (rawResult != $"{cmd}{{{rawGroupContent}}}")
-                            result = rawResult;
+                        var (fb, miss) = ConvertSubSupChars(ch, groupContent);
+                        sb.Append(fb);
+                        if (miss)
+                            _unresolvedCommands.Add($"{cmd}{{{rawGroupContent}}}");
                     }
-
-                    sb.Append(result);
                 }
                 else if (pos < span.Length)
                 {
@@ -332,16 +336,23 @@ public sealed class LatexConverterService : ILatexConverterService
                     var openBrace = pos;
                     var rawGroupContent = CaptureRawGroup(span, openBrace);
                     var groupContent = ParseGroup(span, ref pos, depth + 1);
-                    var result = HandleCmds([cmd], groupContent);
 
-                    if (result == $"{cmd}{{{groupContent}}}")
+                    // Precedence (highest -> lowest):
+                    //  P1: combined key on resolved content (custom override e.g. ^{foo}).
+                    //  P2: combined key on raw content (e.g. ^{\gamma} -> ᵞ, _{\gamma} -> ᵧ).
+                    //  P3: per-char best-effort fallback (_{test} -> ₜₑₛₜ, ^{n2} -> ⁿ²).
+                    //  P4: missing-glyph chars kept as plain; raw form recorded for the hint.
+                    if (_commands.TryGetValue($"{cmd}{{{groupContent}}}", out var resolvedHit))
+                        sb.Append(resolvedHit);
+                    else if (_commands.TryGetValue($"{cmd}{{{rawGroupContent}}}", out var rawHit))
+                        sb.Append(rawHit);
+                    else
                     {
-                        var rawResult = HandleCmds([cmd], rawGroupContent);
-                        if (rawResult != $"{cmd}{{{rawGroupContent}}}")
-                            result = rawResult;
+                        var (fb, miss) = ConvertSubSupChars(ch, groupContent);
+                        sb.Append(fb);
+                        if (miss)
+                            _unresolvedCommands.Add($"{cmd}{{{rawGroupContent}}}");
                     }
-
-                    sb.Append(result);
                 }
                 else if (pos < span.Length)
                 {
