@@ -22,7 +22,7 @@ public sealed class LatexConverterService : ILatexConverterService
         "\\mathcal", "\\mathfrak", "\\mathsf", "\\mathsfbf", "\\mathsfbfit",
         "\\mathsfit", "\\mathtt", "\\left", "\\right", "\\not",
         "\\overleftrightarrow", "\\overline", "\\underbar", "\\underleftarrow",
-        "\\underline", "\\underrightarrow"
+        "\\underline", "\\underrightarrow", "^", "_"
     ]);
 
     private static readonly Dictionary<string, string> Escaped = new()

@@ -136,4 +136,19 @@ public class LatexConverterServiceTests
         svc.Convert(@"\alpha");
         Assert.Empty(svc.LastUnresolvedCommands);
     }
+
+    [Fact]
+    public void SubscriptGroupNoGlyph_NotDoubleReported()
+    {
+        // After all tasks: _{bad} -> bₐd with exactly one unresolved entry.
+        // Before IgnoreAsFallback change: HandleCmds step 5 records _{bad} AND
+        // (later) the fallback records it again -> count >= 2 or the raw form
+        // leaks. This test guards against the step-5 pre-recording.
+        var svc = CreateService();
+        var result = svc.Convert("_{bad}");
+        // behavior lands in Task 3; for Task 1 just assert no entry duplicated:
+        // after Task 1 alone, step 5 stops recording, so entry count drops to 0
+        // (fallback not yet added). Re-verified at end.
+        Assert.Empty(svc.LastUnresolvedCommands);
+    }
 }
