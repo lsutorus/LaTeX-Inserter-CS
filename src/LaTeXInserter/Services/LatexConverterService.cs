@@ -211,8 +211,15 @@ public sealed class LatexConverterService : ILatexConverterService
                     // Subscript/superscript of single char
                     var leaf = span[pos].ToString();
                     pos++;
-                    var result = HandleCmds([cmd], leaf);
-                    sb.Append(result);
+                    if (_commands.TryGetValue($"{cmd}{{{leaf}}}", out var glyphHit))
+                        sb.Append(glyphHit);
+                    else
+                    {
+                        // No single-char glyph: strip braces, keep plain char
+                        // (consistent with the multi-char best-effort rule).
+                        sb.Append(leaf);
+                        _unresolvedCommands.Add($"{cmd}{{{leaf}}}");
+                    }
                 }
                 else
                 {
@@ -356,10 +363,18 @@ public sealed class LatexConverterService : ILatexConverterService
                 }
                 else if (pos < span.Length)
                 {
+                    // Subscript/superscript of single char
                     var leaf = span[pos].ToString();
                     pos++;
-                    var result = HandleCmds([cmd], leaf);
-                    sb.Append(result);
+                    if (_commands.TryGetValue($"{cmd}{{{leaf}}}", out var glyphHit))
+                        sb.Append(glyphHit);
+                    else
+                    {
+                        // No single-char glyph: strip braces, keep plain char
+                        // (consistent with the multi-char best-effort rule).
+                        sb.Append(leaf);
+                        _unresolvedCommands.Add($"{cmd}{{{leaf}}}");
+                    }
                 }
                 else
                 {

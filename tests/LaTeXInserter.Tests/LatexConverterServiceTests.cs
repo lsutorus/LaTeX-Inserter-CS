@@ -169,4 +169,23 @@ public class LatexConverterServiceTests
         Assert.Equal("bₐd", svc.Convert("_{bad}"));
         Assert.Contains("_{bad}", svc.LastUnresolvedCommands);
     }
+
+    [Fact]
+    public void SubscriptSingleCharNoGlyph()
+    {
+        // q has no subscript glyph: strip braces -> xq, record _{q}
+        var svc = CreateService();
+        Assert.Equal("xq", svc.Convert("x_q"));
+        Assert.Contains("_{q}", svc.LastUnresolvedCommands);
+    }
+
+    [Fact]
+    public void SuperscriptSingleCharNoGlyph()
+    {
+        // S has no superscript glyph (uppercase S absent): strip braces -> xS,
+        // record ^{S}
+        var svc = CreateService();
+        Assert.Equal("xS", svc.Convert("x^S"));
+        Assert.Contains("^{S}", svc.LastUnresolvedCommands);
+    }
 }
