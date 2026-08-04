@@ -168,6 +168,7 @@ Hand-written zero-dependency parser replacing the Python Lark LALR parser + `ToU
 - `ReadOnlySpan<char>` for char-by-char iteration
 - Recursive for nested `{...}` (e.g. `x^{\alpha_{i}}`)
 - Malformed input → output raw text, never throw
+- **Sub/sup group fallback (per-character best-effort):** when `_{...}` / `^{...}` miss both the resolved-content combined key and the raw-content combined key, `ConvertSubSupChars` iterates the group and substitutes each char via the existing single-char keys (`_{t}`→ₜ, `^{n}`→ⁿ, …). Missing-glyph chars are kept as plain (normal-size) chars; the original raw `_{...}` / `^{...}` form is recorded in `LastUnresolvedCommands` so the overlay's "no Unicode equivalent" hint still fires. Single-char forms (`x_q`) follow the same rule: braces stripped to the plain char on miss. `_` and `^` are in `IgnoreAsFallback` so `HandleCmds` does not separately pre-record these forms.
 
 ### Autocomplete (IntelliSense Pattern)
 

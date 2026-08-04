@@ -136,4 +136,56 @@ public class LatexConverterServiceTests
         svc.Convert(@"\alpha");
         Assert.Empty(svc.LastUnresolvedCommands);
     }
+
+    [Fact]
+    public void SubscriptGroupNoGlyph_NotDoubleReported()
+    {
+        var svc = CreateService();
+        var result = svc.Convert("_{bad}");
+        Assert.Equal("bₐd", result);
+        // exactly one entry, not two
+        Assert.Equal(1, svc.LastUnresolvedCommands.Count(x => x == "_{bad}"));
+    }
+
+    [Fact]
+    public void SubscriptGroup()
+    {
+        // _{test}: t,e,s,t all have subscript glyphs -> ₜₑₛₜ
+        Assert.Equal("ₜₑₛₜ", CreateService().Convert("_{test}"));
+    }
+
+    [Fact]
+    public void SuperscriptGroup()
+    {
+        // ^{n2}: n->ⁿ, 2->² -> ⁿ²
+        Assert.Equal("ⁿ²", CreateService().Convert("^{n2}"));
+    }
+
+    [Fact]
+    public void SubscriptGroupPartialGlyph()
+    {
+        // _{bad}: b miss, a->ₐ, d miss -> bₐd; records _{bad} in unresolved
+        var svc = CreateService();
+        Assert.Equal("bₐd", svc.Convert("_{bad}"));
+        Assert.Contains("_{bad}", svc.LastUnresolvedCommands);
+    }
+
+    [Fact]
+    public void SubscriptSingleCharNoGlyph()
+    {
+        // q has no subscript glyph: strip braces -> xq, record _{q}
+        var svc = CreateService();
+        Assert.Equal("xq", svc.Convert("x_q"));
+        Assert.Contains("_{q}", svc.LastUnresolvedCommands);
+    }
+
+    [Fact]
+    public void SuperscriptSingleCharNoGlyph()
+    {
+        // S has no superscript glyph (uppercase S absent): strip braces -> xS,
+        // record ^{S}
+        var svc = CreateService();
+        Assert.Equal("xS", svc.Convert("x^S"));
+        Assert.Contains("^{S}", svc.LastUnresolvedCommands);
+    }
 }
