@@ -30,7 +30,7 @@ on a best-effort basis, with consistent handling for the single-char leaf case.
    kept as the plain (normal-size) character. Example: `_{bad}` → `bₐd`.
 
 2. **Single-char missing-glyph policy:** **strip braces, keep plain char**.
-   Example: `x_q` → `xq`, `x^z` → `xz`. This is consistent with the
+   Example: `x_q` → `xq`, `x^S` → `xS` (uppercase S has no superscript glyph; lowercase `z` *does* map via `^{z}`→ᶻ, so it must not be used as the no-glyph example here). This is consistent with the
    best-effort rule for multi-character groups (a one-char group is just the
    degenerate case). It deliberately *changes* the current behavior, which
    leaves the raw `_{q}` / `^{z}`.
@@ -281,8 +281,8 @@ New xUnit cases in `tests/LaTeXInserter.Tests/LatexConverterServiceTests.cs`:
   `LastUnresolvedCommands` contains `_{bad}`.
 - `SubscriptSingleCharNoGlyph` — `x_q` → `xq`, and `LastUnresolvedCommands`
   contains `_{q}`.
-- `SuperscriptSingleCharNoGlyph` — `x^z` → `xz`, and
-  `LastUnresolvedCommands` contains `^{z}`.
+- `SuperscriptSingleCharNoGlyph` — `x^S` → `xS`, and
+  `LastUnresolvedCommands` contains `^{S}`.
 
 Existing tests kept and must stay green (regression guard):
 
