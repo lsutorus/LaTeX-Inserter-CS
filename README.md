@@ -8,7 +8,7 @@
 
 # LaTeX Inserter
 
-A Windows system-tray app that lets you type LaTeX and paste Unicode equivalents anywhere. Press **Ctrl+Alt+M**, type LaTeX, hit Enter — the Unicode equivalent is pasted into whatever window you were in and copied to your clipboard.
+A Windows system tray app that lets you type LaTeX and paste Unicode equivalents anywhere. Press **Ctrl+Alt+M**, type LaTeX-style commands, and hit Enter. The Unicode equivalent is pasted into whatever window you were in and copied to your clipboard.
 
 ## How it works
 
@@ -25,22 +25,21 @@ A Windows system-tray app that lets you type LaTeX and paste Unicode equivalents
 1. Go to [Releases](https://github.com/lsutorus/LaTeX-Inserter-CS/releases/latest)
 2. Download **`LaTeXInserter-win-Setup.exe`**
 3. Run it. Velopack installs the app and launches it
-4. The app lives in your system tray — click the tray icon to configure it
+4. The app lives in system tray. Right-click the tray icon to configure it
 
 A portable build (`LaTeXInserter-win-Portable.zip`) is also available if you prefer not to install.
 
 ## Features
 
-- Autocomplete (IntelliSense-style) for commands
+- Autocomplete (IntelliSense-style)
 - Live Unicode preview
-- Custom mappings — edit or create your own `\command char` pairs
-- Default mappings browser (read-only, alongside your custom ones)
-- Configurable hotkey, startup-on-boot, accent color, and font sizes
-- In-app update checks (Velopack, GitHub Releases backend)
+- Editable commands/symbols (via custom mappings). Edit or create your own `\command char` pairs.
+- Configurable hotkey
+- In-app update functionality
 
 ## Editing custom mappings
 
-Open **Edit Custom Mappings...** from the Settings window. Mappings are plain text — one per line, `\command` followed by two spaces and the character:
+Open **Edit Custom Mappings...** from the right-click settings window. Mappings are plain text. One per line, `\command` followed by two spaces and the character:
 
 ```
 \myalpha  α
@@ -55,14 +54,15 @@ This file (`custom_mappings.txt`) lives in your AppData folder and takes precede
 |-------|---------|
 | `\alpha` | α |
 | `\beta` | β |
-| `\sqrt{x^2}` | √(x²) |
-| `\sum` | ∑ |
 | `\longrightarrow` | ⟶ |
 | `\infty` | ∞ |
 | `\partial` | ∂ |
-| `\nabla` | ∇ |
-| `\forall` | ∀ |
-| `\exists` | ∃ |
+| `\sqrt(x^2)` | √(x²) |
+| `\int x^2 dx = 1\fracslash3 x^3 + C` | ∫x² dx = 1⁄3 x³ + C |
+| `\sum^n_{i=m} f(i) \longleftrightarrow\,\int^b_a f(x) dx` | ∑ⁿᵢ₌ₘ f(i) ⟷ ∫ᵇₐ f(x) dx |
+| `\therefore\,a^2+b^2=c^2` | ∴ a²+b²=c² |
+
+> TIP: '\\,' (backslash followed by a comma) produces a space.
 
 ## Uninstall
 
