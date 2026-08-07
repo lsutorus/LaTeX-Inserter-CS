@@ -49,10 +49,69 @@ public class LatexConverterServiceTests
     [Fact]
     public void CommandWithArgument()
     {
-        // \hat{a}: a→math italic a, \hat→combining circumflex → 𝑎̂
+        // \hat{a}: single letter in braces is NOT math-italicized;
+        // \hat → combining circumflex (U+0302) applied as suffix over the base.
+        // Result: plain 'a' + ̂ = â
         var result = CreateService().Convert(@"\hat{a}");
-        // 𝑎 (U+1D44E) + combining circumflex accent (U+0302)
-        Assert.Equal("\U0001D44Ê", result);
+        Assert.Equal("â", result);
+    }
+
+    [Fact]
+    public void BraceGroupPrefixSymbol_PlacesBeforeContent()
+    {
+        // \sqrt{x^2} → √x² : √ is a math symbol (prefix), not a combining mark,
+        // so it is placed before the group content.
+        Assert.Equal("√x²", CreateService().Convert(@"\sqrt{x^2}"));
+    }
+
+    [Fact]
+    public void BraceGroupPrefixSymbol_SingleArg()
+    {
+        // \sqrt{x} → √x : prefix symbol places before single-char leaf too
+        // (matches the space form \sqrt x → √x).
+        Assert.Equal("√x", CreateService().Convert(@"\sqrt{x}"));
+    }
+
+    [Fact]
+    public void BraceGroupCombiningMark_MultiChar_AttachesToFirstChar()
+    {
+        // \bar{x^2} → x̄² : combining macron (U+0304) attaches to the first
+        // base char of the group and follows it — same render as x\bar^2 —
+        // so it anchors correctly in every font (Calibri, Consolas, Times, Arial).
+        Assert.Equal("x̄²", CreateService().Convert(@"\bar{x^2}"));
+    }
+
+    [Fact]
+    public void BraceGroupCombiningMark_SingleChar_PlacesAfterBase()
+    {
+        // \overline{x} → x̄ : combining overline (U+0305) over a single base
+        // letter keeps the suffix form; the base letter is NOT math-italicized.
+        Assert.Equal("x̅", CreateService().Convert(@"\overline{x}"));
+    }
+
+    [Fact]
+    public void BraceGroupCombiningSymbolModifierSymbol_SingleChar_Suffix()
+    {
+        // \vec{x} → x⃗ : \vec maps to U+20D7 (ModifierSymbol, not a Unicode
+        // Mark category) but is still a combining glyph — it must attach after
+        // the base. Guards the range-based combining check (category test would
+        // wrongly prefix it as ⃗x).
+        Assert.Equal("x⃗", CreateService().Convert(@"\vec{x}"));
+    }
+
+    [Fact]
+    public void BraceGroupCombiningSymbolModifierSymbol_MultiChar_AttachesToFirstChar()
+    {
+        // \vec{x^2} → x⃗² : combining arrow on the first char, rest follows.
+        Assert.Equal("x⃗²", CreateService().Convert(@"\vec{x^2}"));
+    }
+
+    [Fact]
+    public void BraceGroupCombiningMark_SurrogateBase_Suffix()
+    {
+        // \bar{\alpha} → 𝛼̄ : leaf resolves to math-italic alpha (a UTF-16
+        // surrogate pair); the mark must follow the full pair, not split it.
+        Assert.Equal("\U0001D6FC̄", CreateService().Convert(@"\bar{\alpha}"));
     }
 
     [Fact]

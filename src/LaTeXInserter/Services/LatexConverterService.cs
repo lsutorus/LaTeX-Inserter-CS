@@ -432,8 +432,12 @@ public sealed class LatexConverterService : ILatexConverterService
                 continue;
             }
 
-            // Step 2: resolve leaf if innermost (first pass)
-            if (innermost && _commands.TryGetValue(leaf, out var leafResult))
+            // Step 2: resolve leaf if innermost (first pass).
+            // A single ASCII letter is NOT resolved to its math-italic form
+            // (e.g. x → 𝑥) — letters inside braces stay plain. Backslash
+            // commands (\alpha) and other tokens still resolve here.
+            if (innermost && !IsSingleAsciiLetter(leaf) &&
+                _commands.TryGetValue(leaf, out var leafResult))
             {
                 leaf = leafResult;
             }
@@ -445,10 +449,16 @@ public sealed class LatexConverterService : ILatexConverterService
                 continue;
             }
 
-            // Step 4: try cmd as modifier (e.g. \hat → combining circumflex)
+            // Step 4: try cmd as modifier (e.g. \hat → combining circumflex,
+            // \sqrt → √). A combining mark attaches to a base char and renders
+            // consistently only when it follows that base — so it is placed
+            // after the first char of the leaf: a single-char leaf gets
+            // x̄ / â / 𝛼⃗, a multi-char leaf gets x̄² / âb (mark on the first
+            // char, rest follows — matches x\hat^2). A non-combining glyph
+            // (√ and similar symbols) prefixes the whole leaf.
             if (_commands.TryGetValue(cmd, out var cmdResult))
             {
-                leaf = leaf + cmdResult;
+                leaf = ApplyModifier(cmdResult, leaf);
                 innermost = false;
                 continue;
             }
@@ -465,6 +475,70 @@ public sealed class LatexConverterService : ILatexConverterService
         }
 
         return leaf;
+    }
+
+    /// <summary>
+    /// True iff <paramref name="leaf"/> is exactly one ASCII letter (a-z, A-Z).
+    /// Used to keep plain letters inside braces from being resolved to their
+    /// math-italic Unicode equivalents (x → 𝑥), which is undesirable for
+    /// constructs like <c>\overline{x}</c>.
+    /// </summary>
+    private static bool IsSingleAsciiLetter(string leaf)
+    {
+        if (leaf.Length != 1) return false;
+        var c = leaf[0];
+        return (uint)(c - 'a') < 26u || (uint)(c - 'A') < 26u;
+    }
+
+    /// <summary>
+    /// Composes a modifier glyph with its leaf according to the glyph's kind.
+    /// Combining marks (diacriticals, combining arrows/overlines — including
+    /// those categorized as ModifierSymbol like <c>\vec</c> U+20D7) attach to
+    /// the first base char and follow it, so they render with a real anchor in
+    /// every font: single-char leaf → <c>x̄</c>/<c>â</c>/<c>𝛼⃗</c>, multi-char
+    /// leaf → <c>x̄²</c>/<c>âb</c> (mark on the first char, rest follows,
+    /// matching <c>x\bar^2</c>). A non-combining glyph (e.g. <c>\sqrt</c> → √)
+    /// prefixes the whole leaf (<c>√x²</c>).
+    /// </summary>
+    private static string ApplyModifier(string modifier, string leaf)
+    {
+        if (leaf.Length == 0) return modifier;
+        if (!IsCombiningGlyph(modifier)) return modifier + leaf;
+
+        // First base char's length, accounting for a UTF-16 surrogate pair
+        // (e.g. math-italic 𝛼 = two chars): the mark must follow the full pair.
+        var firstLen = leaf.Length >= 2 && char.IsSurrogatePair(leaf[0], leaf[1]) ? 2 : 1;
+
+        // Single base char → suffix (x̄, â, 𝛼⃗).
+        if (leaf.Length == firstLen) return leaf + modifier;
+
+        // Multi-char → mark after the first base char (x̄², âb).
+        return string.Concat(leaf.AsSpan(0, firstLen), modifier, leaf.AsSpan(firstLen));
+    }
+
+    /// <summary>
+    /// True iff every char of <paramref name="glyph"/> is a combining mark,
+    /// tested by codepoint range (U+0300–U+036F, U+1DC0–U+1DFF,
+    /// U+20D0–U+20FF, U+FE20–U+FE2F). Range — not <see cref="char.GetUnicodeCategory"/>
+    /// — is used because "combining diacritical marks for symbols" (U+20D0–,
+    /// e.g. <c>\vec</c> U+20D7) are category <c>ModifierSymbol</c>, not Mark,
+    /// yet still attach to a preceding base char.
+    /// </summary>
+    private static bool IsCombiningGlyph(string glyph)
+    {
+        if (glyph.Length == 0) return false;
+        foreach (var ch in glyph)
+        {
+            uint c = ch;
+            if (!(c is >= 0x0300 and <= 0x036F
+                  || c is >= 0x1DC0 and <= 0x1DFF
+                  || c is >= 0x20D0 and <= 0x20FF
+                  || c is >= 0xFE20 and <= 0xFE2F))
+            {
+                return false;
+            }
+        }
+        return true;
     }
 
     /// <summary>
