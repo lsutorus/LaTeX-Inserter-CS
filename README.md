@@ -22,20 +22,20 @@ A Windows system tray app that lets you type LaTeX and paste Unicode equivalents
 
 > Requires Windows 10 or later. The app runs as admin (needed for global hotkey detection).
 
-1. Go to [Releases](https://github.com/lsutorus/LaTeX-Inserter-CS/releases/latest)
-2. Download **`LaTeXInserter-win-Setup.exe`**
-3. Run it. Velopack installs the app and launches it
-4. The app lives in system tray. Right-click the tray icon to configure it
+1. Go to [Releases](https://github.com/lsutorus/LaTeX-Inserter-CS/releases/latest).
+2. Download **`LaTeXInserter-win-Setup.exe`**.
+3. Run it. Velopack installs the app and launches it.
+4. The app lives in system tray. Right-click the tray icon to configure it.
 
 A portable build (`LaTeXInserter-win-Portable.zip`) is also available if you prefer not to install.
 
 ## Features
 
-- Autocomplete (IntelliSense-style)
+- Autocomplete (like IntelliSense)
 - Live Unicode preview
 - Editable commands/symbols (via custom mappings). Edit or create your own `\command char` pairs.
 - Configurable hotkey
-- In-app update functionality
+- In-app updates
 
 ## Editing custom mappings
 
