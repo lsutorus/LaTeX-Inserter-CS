@@ -52,9 +52,8 @@ This file (`custom_mappings.txt`) lives in your AppData folder and takes precede
 
 | LaTeX | Unicode |
 |-------|---------|
-| `\alpha` | α |
-| `\beta` | β |
-| `\longrightarrow` | ⟶ |
+| `\alpha \beta \gamma` | 𝛼 𝛽 𝛾 |
+| `\to \longrightarrow` | → ⟶ |
 | `\infty` | ∞ |
 | `\partial` | ∂ |
 | `\sqrt(x^2)` | √(x²) |
