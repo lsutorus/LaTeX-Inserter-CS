@@ -247,4 +247,23 @@ public class LatexConverterServiceTests
         Assert.Equal("xS", svc.Convert("x^S"));
         Assert.Contains("^{S}", svc.LastUnresolvedCommands);
     }
+
+    [Fact]
+    public void SubscriptCapital_StaysPlain_NotFoldedToLowercase()
+    {
+        // Unicode has no subscript capitals; the map must not fold _A -> ₐ
+        // (lowercase subscript a). It stays plain A, like a missing glyph.
+        var svc = CreateService();
+        Assert.Equal("A", svc.Convert("_A"));
+        Assert.Contains("_{A}", svc.LastUnresolvedCommands);
+    }
+
+    [Fact]
+    public void SubscriptGroupCapitalMixed_StaysPlainForCapitals()
+    {
+        // _{Ab}: A plain (no cap glyph), b plain (no subscript b glyph either);
+        // capitals must not fold to their lowercase subscript glyphs.
+        var svc = CreateService();
+        Assert.Equal("Ab", svc.Convert("_{Ab}"));
+    }
 }
