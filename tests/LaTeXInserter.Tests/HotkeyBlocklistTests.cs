@@ -241,4 +241,41 @@ public class HotkeyBlocklistTests
     {
         Assert.True(HotkeyBlocklist.IsBlocked(new HotkeyChord(ModifierMask.Windows, KeyCode.VcM)));
     }
+
+    [Fact]
+    public void MacOs_BlocksCommandSpace()
+    {
+        var chord = new HotkeyChord(ModifierMask.Windows, KeyCode.VcSpace);
+        Assert.True(HotkeyBlocklist.IsBlocked(chord, PlatformKind.MacOS));
+    }
+
+    [Fact]
+    public void MacOs_BlocksCommandQ()
+    {
+        var chord = new HotkeyChord(ModifierMask.Windows, KeyCode.VcQ);
+        Assert.True(HotkeyBlocklist.IsBlocked(chord, PlatformKind.MacOS));
+    }
+
+    [Fact]
+    public void MacOs_DoesNotBlockWindowsOnlyCombos()
+    {
+        // Win+E is Explorer on Windows; ⌘E is unremarkable on macOS.
+        var chord = new HotkeyChord(ModifierMask.Windows, KeyCode.VcE);
+        Assert.False(HotkeyBlocklist.IsBlocked(chord, PlatformKind.MacOS));
+        Assert.True(HotkeyBlocklist.IsBlocked(chord, PlatformKind.Windows));
+    }
+
+    [Fact]
+    public void MacOs_AllowsDefaultHotkey()
+    {
+        Assert.False(HotkeyBlocklist.IsBlocked(
+            AppSettings.Default.Hotkey, PlatformKind.MacOS));
+    }
+
+    [Fact]
+    public void Windows_AllowsDefaultHotkey()
+    {
+        Assert.False(HotkeyBlocklist.IsBlocked(
+            AppSettings.Default.Hotkey, PlatformKind.Windows));
+    }
 }
