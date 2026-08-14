@@ -101,6 +101,13 @@
                 <Button Content="Save" Command="{Binding SaveCommand}" />
             </StackPanel>
 
+            <!-- Current version, bottom-left -->
+            <TextBlock Text="{Binding CurrentVersion}"
+                       Foreground="#888888"
+                       FontSize="11"
+                       HorizontalAlignment="Left"
+                       Margin="0,8,0,0" />
+
         </StackPanel>
     </ScrollViewer>
 </Window>

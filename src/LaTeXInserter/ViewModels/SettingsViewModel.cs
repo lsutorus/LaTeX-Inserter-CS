@@ -1,3 +1,4 @@
+using System.Reflection;
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -57,6 +58,11 @@ public sealed partial class SettingsViewModel : ObservableObject
     }
 
     public string CurrentHotkeyDisplay => _hotkeyService.CurrentHotkey.ToString();
+
+    // Display-only version read from the entry assembly (sourced from
+    // <Version> in LaTeXInserter.csproj). Shown bottom-left of Settings.
+    public string CurrentVersion =>
+        $"v{Assembly.GetEntryAssembly()?.GetName().Version?.ToString() ?? "unknown"}";
 
     public event EventHandler<AppSettings>? SettingsSaved;
     public event EventHandler? CloseRequested;
