@@ -11,12 +11,9 @@ public sealed class SettingsService : ISettingsService
     private readonly string _settingsPath;
     private readonly string _customMappingsPath;
 
-    public SettingsService()
+    public SettingsService(IAppDataPathProvider appDataPathProvider)
     {
-        _appDataPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "LaTeX Inserter");
-        Directory.CreateDirectory(_appDataPath);
+        _appDataPath = appDataPathProvider.GetAppDataDirectory();
         _settingsPath = Path.Combine(_appDataPath, "settings.json");
         _customMappingsPath = Path.Combine(_appDataPath, "custom_mappings.txt");
     }

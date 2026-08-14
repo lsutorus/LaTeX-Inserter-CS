@@ -29,6 +29,7 @@ internal static class Program
 
     private static void ConfigureServices(IServiceCollection services)
     {
+        services.AddSingleton<IAppDataPathProvider, DefaultAppDataPathProvider>();
         services.AddSingleton<ISettingsService, SettingsService>();
         services.AddSingleton<ILatexConverterService, LatexConverterService>();
         services.AddSingleton<IAccentColorModule, AccentColorModule>();

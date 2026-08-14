@@ -7,48 +7,37 @@ namespace LaTeXInserter.Tests;
 
 public class SettingsServiceTests : IDisposable
 {
+    // The provider appends "LaTeX Inserter" to its root, so the real app-data
+    // directory lives one level below _tempBase. _appDataPath is that leaf.
+    private readonly string _tempBase;
     private readonly string _appDataPath;
     private readonly string _settingsPath;
     private readonly string _customMappingsPath;
-    private readonly string? _savedSettings;
-    private readonly string? _savedMappings;
 
     public SettingsServiceTests()
     {
-        _appDataPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "LaTeX Inserter");
-
+        // Per-test temp root so we never touch the real %APPDATA% / ~/Library.
+        _tempBase = Path.Combine(
+            Path.GetTempPath(),
+            "latexinserter-test-" + Guid.NewGuid().ToString("N")[..8]);
+        _appDataPath = Path.Combine(_tempBase, "LaTeX Inserter");
         _settingsPath = Path.Combine(_appDataPath, "settings.json");
         _customMappingsPath = Path.Combine(_appDataPath, "custom_mappings.txt");
-
-        // Back up existing files
-        if (File.Exists(_settingsPath))
-            _savedSettings = File.ReadAllText(_settingsPath);
-        if (File.Exists(_customMappingsPath))
-            _savedMappings = File.ReadAllText(_customMappingsPath);
     }
 
     public void Dispose()
     {
-        // Restore backed-up files
-        if (_savedSettings is not null)
-            File.WriteAllText(_settingsPath, _savedSettings);
-        else if (File.Exists(_settingsPath))
-            File.Delete(_settingsPath);
-
-        if (_savedMappings is not null)
-            File.WriteAllText(_customMappingsPath, _savedMappings);
-        else if (File.Exists(_customMappingsPath))
-            File.Delete(_customMappingsPath);
+        if (Directory.Exists(_tempBase))
+            Directory.Delete(_tempBase, recursive: true);
     }
+
+    private SettingsService CreateSut() =>
+        new(new DefaultAppDataPathProvider(PlatformKind.Windows, _tempBase));
 
     [Fact]
     public void LoadReturnsDefaultWhenNoFile()
     {
-        // Clean slate for this test
-        if (File.Exists(_settingsPath)) File.Delete(_settingsPath);
-        var svc = new SettingsService();
+        var svc = CreateSut();
         var settings = svc.Load();
         Assert.Equal(AppSettings.Default.Hotkey, settings.Hotkey);
     }
@@ -56,7 +45,7 @@ public class SettingsServiceTests : IDisposable
     [Fact]
     public void RoundTripPreservesValues()
     {
-        var svc = new SettingsService();
+        var svc = CreateSut();
         var original = new AppSettings(
             new HotkeyChord(ModifierMask.Control | ModifierMask.Shift, KeyCode.VcK),
             true);
@@ -70,7 +59,7 @@ public class SettingsServiceTests : IDisposable
     public void GetCustomMappingLinesNoFileReturnsEmpty()
     {
         if (File.Exists(_customMappingsPath)) File.Delete(_customMappingsPath);
-        var svc = new SettingsService();
+        var svc = CreateSut();
         var lines = svc.GetCustomMappingLines();
         Assert.Empty(lines);
     }
@@ -78,32 +67,20 @@ public class SettingsServiceTests : IDisposable
     [Fact]
     public void GetCustomMappingLinesWithFileReturnsContent()
     {
+        Directory.CreateDirectory(_appDataPath);
         File.WriteAllText(_customMappingsPath, "\\alpha β\n# comment\n\\gamma γ");
-        try
-        {
-            var svc = new SettingsService();
-            var lines = svc.GetCustomMappingLines().ToList();
-            Assert.Equal(3, lines.Count);
-        }
-        finally
-        {
-            if (File.Exists(_customMappingsPath)) File.Delete(_customMappingsPath);
-        }
+        var svc = CreateSut();
+        var lines = svc.GetCustomMappingLines().ToList();
+        Assert.Equal(3, lines.Count);
     }
 
     [Fact]
     public void CorruptFileReturnsDefault()
     {
+        Directory.CreateDirectory(_appDataPath);
         File.WriteAllText(_settingsPath, "not valid json!!!");
-        try
-        {
-            var svc = new SettingsService();
-            var settings = svc.Load();
-            Assert.Equal(AppSettings.Default.Hotkey, settings.Hotkey);
-        }
-        finally
-        {
-            if (File.Exists(_settingsPath)) File.Delete(_settingsPath);
-        }
+        var svc = CreateSut();
+        var settings = svc.Load();
+        Assert.Equal(AppSettings.Default.Hotkey, settings.Hotkey);
     }
 }
