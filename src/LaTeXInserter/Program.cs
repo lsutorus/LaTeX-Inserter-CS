@@ -1,8 +1,9 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using LaTeXInserter.Abstractions;
+using LaTeXInserter.Models;
+using LaTeXInserter.Platform;
 using LaTeXInserter.Services;
-using LaTeXInserter.Platform.Windows;
 using LaTeXInserter.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using SharpHook;
@@ -42,10 +43,8 @@ internal static class Program
         services.AddSingleton<IHotkeyService, HotkeyService>();
         services.AddSingleton<IClipboardProvider, AvaloniaClipboardProvider>();
         services.AddSingleton<IInputSimulatorService, InputSimulatorService>();
-        services.AddSingleton<IWindowActivator, WindowsWindowActivator>();
-        services.AddSingleton<IOverlayPositioner, WindowsOverlayPositioner>();
+        services.AddPlatformServices(PlatformKinds.Current);
         services.AddSingleton<ISubmitPasteService, SubmitPasteService>();
-        services.AddSingleton<IStartupRegistrar, WindowsStartupRegistrar>();
 
         // Phase 3 — tray & lifecycle
         services.AddSingleton<TrayIconViewModel>();
