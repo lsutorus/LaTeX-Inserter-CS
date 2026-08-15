@@ -3196,8 +3196,8 @@ Branch: `feat/macos-port`. Execute one task per session, clear context between t
 | 1 — App-data path seam | ✅ done | `cd5da35` | Tests use temp paths (plan's permission caveat). `SettingsServiceTests` repaired off real `%APPDATA%`. 133 tests pass. |
 | 2 — Hotkey chord display | ✅ done | `98d1a6e` | `HotkeyChordFormatter` added; `HotkeyChord.ToString()` delegates to it. 137 tests pass (+4). |
 | 3 — Reserved-shortcut blocklist | ✅ done | `f7e1b38` | `VcBackQuote` (capital Q), not `VcBackquote` — plan had wrong case, corrected. `VcComma`/`VcSlash`/`Vc3`–`Vc5` valid. `HotkeyDialogViewModel:94` uses 1-arg overload, no change needed. 142 tests pass (+5). |
-| 4 — OS-dispatched DI registration | ⏳ next session | — | Creates `IPermissionService`, `PermissionStatus`, `NoOpPermissionService`, `PlatformServiceRegistration`; macOS branch throws `PlatformNotSupportedException` until Task 9. Rewire `Program.cs` (swap `using LaTeXInserter.Platform.Windows;` → `LaTeXInserter.Platform`, add `Models`; replace 3 direct registrations with `AddPlatformServices(PlatformKinds.Current)`). Creates `PlatformServiceRegistrationTests`. |
-| 5 — ObjC + native interop core | pending | — | Adds `Xunit.SkippableFact` package to test csproj. |
+| 4 — OS-dispatched DI registration | ✅ done | `7d0dfc7` | `PlatformServiceRegistration.AddPlatformServices` added; `Program.cs` swapped `using LaTeXInserter.Platform.Windows` → `LaTeXInserter.Platform` + `Models`, 3 direct regs replaced with `AddPlatformServices(PlatformKinds.Current)`. macOS branch throws `PlatformNotSupportedException` until Task 9. Test needed `using LaTeXInserter.Services` (NoOpPermissionService) — plan omitted it. Smoke test skipped (Windows needs admin elevation + interactive tray). 144 tests pass (+2). |
+| 5 — ObjC + native interop core | ⏳ next session | — | Adds `Xunit.SkippableFact` package to test csproj. |
 | 6 — macOS perms + hook spike | pending [MAC-ONLY verify] | — | Riskiest task. Step 8 must be run on a Mac. |
 | 7 — macOS window activator | pending | — | |
 | 8 — macOS overlay positioner | pending | — | Negative-origin clamp test; MAC-ONLY calibration. |
@@ -3211,5 +3211,5 @@ Branch: `feat/macos-port`. Execute one task per session, clear context between t
 | 16 — Real-device verification matrix | pending [MAC-ONLY execution] | — | Create `docs/macos-verification.md` early (Task 6 Step 8 writes into it). |
 | 17 — Documentation | pending | — | Fix stale `.sln` → `.slnx` in `CLAUDE.md` + `docs/architecture.md`. |
 
-**Resume state:** Tasks 1–3 committed on `feat/macos-port`. Working tree clean. Start Task 4 in a fresh session. Run `dotnet test LaTeXInserter.slnx` first to confirm green baseline (142 passing) before changes.
+**Resume state:** Tasks 1–4 committed on `feat/macos-port`. Working tree clean. Start Task 5 in a fresh session. Run `dotnet test LaTeXInserter.slnx` first to confirm green baseline (144 passing) before changes.
 
