@@ -77,6 +77,22 @@ public class OverlayPositionerTests
     }
 
     [Fact]
+    public void GetPosition_ClampsWithinScreenWithNegativeOrigin()
+    {
+        // Secondary display positioned above and left of the primary.
+        var workingArea = new PixelRect(-1920, -1080, 1920, 1080);
+        var cursor = new PixelPoint(-100, -100);
+        var size = new PixelSize(350, 120);
+
+        var result = OverlayPositioner.GetPosition(cursor, size, workingArea);
+
+        Assert.True(result.X >= workingArea.X);
+        Assert.True(result.Y >= workingArea.Y);
+        Assert.True(result.X + size.Width <= workingArea.X + workingArea.Width);
+        Assert.True(result.Y + size.Height <= workingArea.Y + workingArea.Height);
+    }
+
+    [Fact]
     public void FlipAndClamp_BothAxes()
     {
         var result = OverlayPositioner.GetPosition(
