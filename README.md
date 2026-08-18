@@ -50,6 +50,8 @@ This file (`custom_mappings.txt`) lives in your AppData folder and takes precede
 
 ## Examples
 
+https://github.com/user-attachments/assets/8c598fb8-487c-405b-b8f8-06479c37f005
+
 | LaTeX | Unicode |
 |-------|---------|
 | `\alpha \beta \gamma` | 𝛼 𝛽 𝛾 |
