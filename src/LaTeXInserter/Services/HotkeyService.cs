@@ -17,8 +17,10 @@ internal sealed class HotkeyService : IHotkeyService
 
     private HotkeyChord _currentHotkey;
     private volatile bool _isRecording;
+    private volatile bool _isRunning;
 
     public HotkeyChord CurrentHotkey => _currentHotkey;
+    public bool IsRunning => _isRunning;
     public bool IsRecording
     {
         get => _isRecording;
@@ -38,6 +40,7 @@ internal sealed class HotkeyService : IHotkeyService
     public event EventHandler<HotkeyChord>? HotkeyPressed;
     public event EventHandler<HotkeyChord>? HotkeyRecorded;
     public event EventHandler<HotkeyChord>? HotkeyChanged;
+    public event EventHandler<string>? HookFailed;
 
     public HotkeyService(SimpleGlobalHook hook)
     {
@@ -49,9 +52,40 @@ internal sealed class HotkeyService : IHotkeyService
 
     public Task StartAsync(CancellationToken ct)
     {
-        // Fire-and-forget on thread pool — RunAsync must not block caller
-        _ = Task.Run(() => _hook.RunAsync(), ct);
+        // Fire-and-forget on thread pool — RunAsync must not block caller.
+        // SharpHook already runs the native hook on its own dedicated thread; the
+        // Task.Run wrapper only keeps the synchronous setup off the caller.
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                _isRunning = true;
+                await _hook.RunAsync();
+                _isRunning = false;
+            }
+            catch (Exception ex)
+            {
+                _isRunning = false;
+                Dispatcher.UIThread.Post(() =>
+                    HookFailed?.Invoke(this, DescribeFailure(ex)));
+            }
+        }, ct);
+
         return Task.CompletedTask;
+    }
+
+    private static string DescribeFailure(Exception ex)
+    {
+        // SharpHook surfaces macOS permission denial as HookException with
+        // UioHookResult.ErrorAxApiDisabled.
+        if (ex is HookException he && he.Result == UioHookResult.ErrorAxApiDisabled)
+        {
+            return "macOS denied access to keyboard events. Grant LaTeX Inserter "
+                 + "Accessibility and Input Monitoring access in System Settings, "
+                 + "then quit and reopen the app.";
+        }
+
+        return $"The global keyboard hook could not start: {ex.Message}";
     }
 
     public void RegisterHotkey(HotkeyChord chord)
