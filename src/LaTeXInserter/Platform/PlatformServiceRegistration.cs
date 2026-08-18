@@ -1,5 +1,6 @@
 using LaTeXInserter.Abstractions;
 using LaTeXInserter.Models;
+using LaTeXInserter.Platform.MacOS;
 using LaTeXInserter.Platform.Windows;
 using LaTeXInserter.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,9 +21,13 @@ public static class PlatformServiceRegistration
                 break;
 
             case PlatformKind.MacOS:
-                // Replaced with real registrations in Task 9.
-                throw new PlatformNotSupportedException(
-                    "macOS platform services land in Task 9.");
+#pragma warning disable CA1416 // Guarded by the PlatformKind.MacOS switch arm.
+                services.AddSingleton<IWindowActivator, MacWindowActivator>();
+                services.AddSingleton<IOverlayPositioner, MacOverlayPositioner>();
+                services.AddSingleton<IStartupRegistrar, MacStartupRegistrar>();
+                services.AddSingleton<IPermissionService, MacPermissionService>();
+#pragma warning restore CA1416
+                break;
 
             default:
                 throw new PlatformNotSupportedException(

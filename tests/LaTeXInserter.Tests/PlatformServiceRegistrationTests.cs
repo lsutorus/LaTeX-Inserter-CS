@@ -1,6 +1,8 @@
+using System.Linq;
 using LaTeXInserter.Abstractions;
 using LaTeXInserter.Models;
 using LaTeXInserter.Platform;
+using LaTeXInserter.Platform.MacOS;
 using LaTeXInserter.Platform.Windows;
 using LaTeXInserter.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,5 +32,23 @@ public class PlatformServiceRegistrationTests
 
         Assert.True(sut.Query().IsUsable);
         Assert.False(sut.RequiresUserAction);
+    }
+
+    [Fact]
+    public void MacOs_ResolvesMacImplementations()
+    {
+        var services = new ServiceCollection();
+        services.AddPlatformServices(PlatformKind.MacOS);
+
+        // Resolution is not attempted off-macOS — the static ctors dlopen frameworks.
+        // Asserting on the descriptors keeps this test runnable on Windows CI.
+        Assert.Equal(typeof(MacWindowActivator),
+            services.Single(d => d.ServiceType == typeof(IWindowActivator)).ImplementationType);
+        Assert.Equal(typeof(MacOverlayPositioner),
+            services.Single(d => d.ServiceType == typeof(IOverlayPositioner)).ImplementationType);
+        Assert.Equal(typeof(MacStartupRegistrar),
+            services.Single(d => d.ServiceType == typeof(IStartupRegistrar)).ImplementationType);
+        Assert.Equal(typeof(MacPermissionService),
+            services.Single(d => d.ServiceType == typeof(IPermissionService)).ImplementationType);
     }
 }
