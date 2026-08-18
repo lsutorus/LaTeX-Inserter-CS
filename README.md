@@ -3,7 +3,7 @@
 </div>
 
 <div align="center">
-  <a href="https://github.com/lsutorus/LaTeX-Inserter-CS/releases/latest"><img src="https://img.shields.io/github/v/release/lsutorus/LaTeX-Inserter-CS?color=800f00&style=plastic" alt="GitHub release"></a>&nbsp;<img src="https://img.shields.io/badge/OS-Windows-blue?style=plastic&logo=windows&color=0a348f" alt="Windows OS">&nbsp;<a href="https://github.com/lsutorus/LaTeX-Inserter-CS/search?l=c%23"><img src="https://img.shields.io/badge/.NET-10-512BD4?style=plastic&logo=dotnet&logoColor=white" alt=".NET 10"></a>&nbsp;<a href="https://github.com/lsutorus/LaTeX-Inserter-CS/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-MIT-C41E3A" alt="License"></a>
+  <a href="https://github.com/lsutorus/LaTeX-Inserter-CS/releases/latest"><img src="https://img.shields.io/github/v/release/lsutorus/LaTeX-Inserter-CS?color=800f00&style=plastic" alt="GitHub release"></a>&nbsp;<img src="https://img.shields.io/badge/OS-Windows-blue?style=plastic&logo=windows&color=0a348f" alt="Windows OS">&nbsp;<a href="https://github.com/lsutorus/LaTeX-Inserter-CS/search?l=c%23"><img src="https://img.shields.io/badge/.NET-10-512BD4?style=plastic&logo=dotnet&logoColor=white" alt=".NET 10"></a>&nbsp;<a href="https://github.com/lsutorus/LaTeX-Inserter-CS/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-MIT-C41E3A?style=plastic" alt="License"></a>
 </div>
 
 # LaTeX Inserter
