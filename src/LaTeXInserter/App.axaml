@@ -80,8 +80,7 @@
 
     <TrayIcon.Icons>
         <TrayIcons>
-            <TrayIcon Icon="/Assets/LaTeX-Inserter-icon-final.ico"
-                      ToolTipText="LaTeX Inserter" />
+            <TrayIcon ToolTipText="LaTeX Inserter" />
         </TrayIcons>
     </TrayIcon.Icons>
 </Application>
