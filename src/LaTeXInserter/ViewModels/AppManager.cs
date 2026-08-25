@@ -97,6 +97,7 @@ public sealed class AppManager : IDisposable
 
             // 6. Wire events
             _hotkeyService.HotkeyPressed += OnHotkeyPressed;
+            _hotkeyService.HookFailed += OnHookFailed;
             _submitPasteService.OverlayHideRequested += OnHideRequested;
             _trayIconViewModel.ShowOverlayRequested += OnShowOverlayRequested;
             _trayIconViewModel.SettingsRequested += OnSettingsRequested;
@@ -117,6 +118,14 @@ public sealed class AppManager : IDisposable
     }
 
     private void OnHotkeyPressed(object? sender, HotkeyChord _) => ToggleOverlay();
+
+    private void OnHookFailed(object? sender, string message)
+    {
+        Debug.WriteLine($"Global hook failed: {message}");
+        // Open Settings so the user sees the permission panel and the reason.
+        OnSettingsRequested(this, EventArgs.Empty);
+    }
+
     private void OnShowOverlayRequested(object? sender, EventArgs _) => ToggleOverlay();
     private async void OnCheckForUpdatesRequested(object? sender, EventArgs _)
     {
@@ -296,6 +305,7 @@ public sealed class AppManager : IDisposable
         if (!_isShutdown)
         {
             _hotkeyService.HotkeyPressed -= OnHotkeyPressed;
+            _hotkeyService.HookFailed -= OnHookFailed;
             _submitPasteService.OverlayHideRequested -= OnHideRequested;
             _trayIconViewModel.ShowOverlayRequested -= OnShowOverlayRequested;
             _trayIconViewModel.SettingsRequested -= OnSettingsRequested;

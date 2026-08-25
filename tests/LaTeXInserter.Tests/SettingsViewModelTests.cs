@@ -41,12 +41,25 @@ public class SettingsViewModelTests
         return mock;
     }
 
+    // Default: a platform that never needs permissions (Windows), so the panel stays hidden.
+    private static IPermissionService CreatePermissions()
+    {
+        var mock = Substitute.For<IPermissionService>();
+        mock.RequiresUserAction.Returns(false);
+        mock.Query().Returns(PermissionStatus.AllGranted);
+        return mock;
+    }
+
+    private static SettingsViewModel CreateSut(IPermissionService? permissions = null) =>
+        new(CreateSettings(TestSettings()), CreateHotkey(), CreateStartup(), CreateAccent(),
+            permissions ?? CreatePermissions());
+
     [Fact]
     public void Open_LoadsValuesFromSettings()
     {
         var settings = TestSettings() with { InputFontSize = 18, AccentColor = "#3B82F6", AutocompleteEnabled = false };
         var svc = CreateSettings(settings);
-        var vm = new SettingsViewModel(svc, CreateHotkey(), CreateStartup(), CreateAccent());
+        var vm = new SettingsViewModel(svc, CreateHotkey(), CreateStartup(), CreateAccent(), CreatePermissions());
 
         Assert.Equal(18, vm.InputFontSize);
         Assert.Equal("#3B82F6", vm.AccentColor);
@@ -59,7 +72,7 @@ public class SettingsViewModelTests
         var svc = CreateSettings(TestSettings());
         var startup = CreateStartup();
         var accent = CreateAccent();
-        var vm = new SettingsViewModel(svc, CreateHotkey(), startup, accent);
+        var vm = new SettingsViewModel(svc, CreateHotkey(), startup, accent, CreatePermissions());
 
         vm.AccentColor = "#EF4444";
         vm.AutocompleteEnabled = false;
@@ -83,7 +96,7 @@ public class SettingsViewModelTests
     {
         var svc = CreateSettings(TestSettings());
         var accent = CreateAccent();
-        var vm = new SettingsViewModel(svc, CreateHotkey(), CreateStartup(), accent);
+        var vm = new SettingsViewModel(svc, CreateHotkey(), CreateStartup(), accent, CreatePermissions());
 
         vm.AccentColor = "#EF4444";
         // Simulate close via Cancel: CloseRequested fires, AppManager closes window, OnClosed reverts.
@@ -102,7 +115,7 @@ public class SettingsViewModelTests
     public void OnClosed_RevertsUnsavedFieldChanges()
     {
         var svc = CreateSettings(TestSettings());
-        var vm = new SettingsViewModel(svc, CreateHotkey(), CreateStartup(), CreateAccent());
+        var vm = new SettingsViewModel(svc, CreateHotkey(), CreateStartup(), CreateAccent(), CreatePermissions());
 
         var originalFont = vm.InputFontSize;
         vm.InputFontSize = 24;
@@ -121,7 +134,7 @@ public class SettingsViewModelTests
     public void OnClosed_AfterSave_DoesNotRevert()
     {
         var svc = CreateSettings(TestSettings());
-        var vm = new SettingsViewModel(svc, CreateHotkey(), CreateStartup(), CreateAccent());
+        var vm = new SettingsViewModel(svc, CreateHotkey(), CreateStartup(), CreateAccent(), CreatePermissions());
 
         vm.InputFontSize = 22;
         vm.AccentColor = "#10B981";
@@ -139,7 +152,7 @@ public class SettingsViewModelTests
     {
         var svc = CreateSettings(TestSettings());
         var accent = CreateAccent();
-        var vm = new SettingsViewModel(svc, CreateHotkey(), CreateStartup(), accent);
+        var vm = new SettingsViewModel(svc, CreateHotkey(), CreateStartup(), accent, CreatePermissions());
 
         // Clear ctor-time apply received from Open().
         accent.ClearReceivedCalls();
@@ -159,12 +172,68 @@ public class SettingsViewModelTests
     {
         // Singleton VM: after Cancel reverts, reopening refreshes from disk.
         var svc = CreateSettings(TestSettings());
-        var vm = new SettingsViewModel(svc, CreateHotkey(), CreateStartup(), CreateAccent());
+        var vm = new SettingsViewModel(svc, CreateHotkey(), CreateStartup(), CreateAccent(), CreatePermissions());
 
         vm.InputFontSize = 24;
         vm.OnClosed(); // revert
         vm.Open();     // reopen
 
         Assert.Equal(16, vm.InputFontSize);
+    }
+
+    [Fact]
+    public void PermissionPanel_HiddenWhenPlatformNeedsNoPermissions()
+    {
+        var permissions = Substitute.For<IPermissionService>();
+        permissions.RequiresUserAction.Returns(false);
+        permissions.Query().Returns(PermissionStatus.AllGranted);
+
+        var sut = CreateSut(permissions);
+        sut.RefreshPermissions();
+
+        Assert.False(sut.ShowPermissionPanel);
+    }
+
+    [Fact]
+    public void PermissionPanel_ShownWhenAccessibilityDenied()
+    {
+        var permissions = Substitute.For<IPermissionService>();
+        permissions.RequiresUserAction.Returns(true);
+        permissions.Query().Returns(new PermissionStatus(false, true, false));
+
+        var sut = CreateSut(permissions);
+        sut.RefreshPermissions();
+
+        Assert.True(sut.ShowPermissionPanel);
+        Assert.False(sut.AccessibilityGranted);
+        Assert.True(sut.InputMonitoringGranted);
+        Assert.Contains("Accessibility", sut.PermissionSummary);
+    }
+
+    [Fact]
+    public void PermissionSummary_MentionsSecureInputWhenActive()
+    {
+        var permissions = Substitute.For<IPermissionService>();
+        permissions.RequiresUserAction.Returns(true);
+        permissions.Query().Returns(new PermissionStatus(true, true, true));
+
+        var sut = CreateSut(permissions);
+        sut.RefreshPermissions();
+
+        Assert.True(sut.ShowPermissionPanel);
+        Assert.Contains("Secure Keyboard Entry", sut.PermissionSummary);
+    }
+
+    [Fact]
+    public void OpenAccessibilitySettings_DelegatesToPermissionService()
+    {
+        var permissions = Substitute.For<IPermissionService>();
+        permissions.RequiresUserAction.Returns(true);
+        permissions.Query().Returns(new PermissionStatus(false, false, false));
+
+        var sut = CreateSut(permissions);
+        sut.OpenAccessibilitySettingsCommand.Execute(null);
+
+        permissions.Received(1).OpenAccessibilitySettings();
     }
 }

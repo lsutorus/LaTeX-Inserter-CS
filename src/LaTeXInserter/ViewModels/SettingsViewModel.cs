@@ -13,6 +13,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     private readonly IHotkeyService _hotkeyService;
     private readonly IStartupRegistrar _startupRegistrar;
     private readonly IAccentColorModule _accentColorModule;
+    private readonly IPermissionService _permissionService;
 
     // Settings take effect on Save only. On any unsaved close (Cancel / X),
     // live changes revert to this snapshot so the app state matches disk.
@@ -33,6 +34,18 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _startOnStartup;
+
+    [ObservableProperty]
+    private bool _showPermissionPanel;
+
+    [ObservableProperty]
+    private bool _accessibilityGranted;
+
+    [ObservableProperty]
+    private bool _inputMonitoringGranted;
+
+    [ObservableProperty]
+    private string _permissionSummary = string.Empty;
 
     public static List<AccentSwatchInfo> AccentPalette { get; } =
     [
@@ -72,12 +85,14 @@ public sealed partial class SettingsViewModel : ObservableObject
         ISettingsService settingsService,
         IHotkeyService hotkeyService,
         IStartupRegistrar startupRegistrar,
-        IAccentColorModule accentColorModule)
+        IAccentColorModule accentColorModule,
+        IPermissionService permissionService)
     {
         _settingsService = settingsService;
         _hotkeyService = hotkeyService;
         _startupRegistrar = startupRegistrar;
         _accentColorModule = accentColorModule;
+        _permissionService = permissionService;
 
         // Initial refresh from disk (also acts as first-open snapshot).
         Open();
@@ -109,7 +124,64 @@ public sealed partial class SettingsViewModel : ObservableObject
         // Restore live accent resources to the persisted value in case a prior
         // unsaved close left a preview applied.
         _accentColorModule.Apply(settings.AccentColor);
+
+        RefreshPermissions();
     }
+
+    /// <summary>
+    /// Re-reads OS permission state. Cheap and non-prompting, so it is safe to call
+    /// on every window open and after the user returns from System Settings.
+    /// </summary>
+    public void RefreshPermissions()
+    {
+        if (!_permissionService.RequiresUserAction)
+        {
+            ShowPermissionPanel = false;
+            AccessibilityGranted = true;
+            InputMonitoringGranted = true;
+            PermissionSummary = string.Empty;
+            return;
+        }
+
+        var status = _permissionService.Query();
+        AccessibilityGranted = status.AccessibilityGranted;
+        InputMonitoringGranted = status.InputMonitoringGranted;
+        ShowPermissionPanel = !status.IsUsable || status.SecureInputActive;
+        PermissionSummary = BuildSummary(status);
+    }
+
+    private static string BuildSummary(PermissionStatus status)
+    {
+        if (!status.AccessibilityGranted && !status.InputMonitoringGranted)
+            return "LaTeX Inserter needs Accessibility and Input Monitoring access to "
+                 + "detect the hotkey and paste. Grant both, then quit and reopen the app.";
+
+        if (!status.AccessibilityGranted)
+            return "LaTeX Inserter needs Accessibility access to detect the hotkey and "
+                 + "paste. Grant it, then quit and reopen the app.";
+
+        if (!status.InputMonitoringGranted)
+            return "LaTeX Inserter needs Input Monitoring access to detect the hotkey. "
+                 + "Grant it, then quit and reopen the app.";
+
+        if (status.SecureInputActive)
+            return "Another app has Secure Keyboard Entry turned on, which blocks all "
+                 + "hotkeys and pasting system-wide. Terminal enables it under "
+                 + "Terminal ▸ Secure Keyboard Entry. Turn it off to use LaTeX Inserter.";
+
+        return string.Empty;
+    }
+
+    [RelayCommand]
+    private void OpenAccessibilitySettings() => _permissionService.OpenAccessibilitySettings();
+
+    [RelayCommand]
+    private void OpenInputMonitoringSettings() => _permissionService.OpenInputMonitoringSettings();
+
+    // Named ...Cmd to avoid colliding with the public RefreshPermissions() method;
+    // the generated command is therefore RefreshPermissionsCmdCommand.
+    [RelayCommand]
+    private void RefreshPermissionsCmd() => RefreshPermissions();
 
     // Called when the window closes for any reason (Save / Cancel / X). On an
     // unsaved close, revert the live accent preview back to the persisted value
