@@ -17,6 +17,7 @@ public sealed class AppManager : IDisposable
     private readonly IWindowActivator _windowActivator;
     private readonly IOverlayPositioner _overlayPositioner;
     private readonly ISubmitPasteService _submitPasteService;
+    private readonly IInputSimulatorService _inputSimulator;
     private readonly IUpdateCoordinator _updateCoordinator;
     private readonly TrayIconViewModel _trayIconViewModel;
     private readonly OverlayViewModel _overlayViewModel;
@@ -42,6 +43,7 @@ public sealed class AppManager : IDisposable
         IWindowActivator windowActivator,
         IOverlayPositioner overlayPositioner,
         ISubmitPasteService submitPasteService,
+        IInputSimulatorService inputSimulator,
         IUpdateCoordinator updateCoordinator,
         TrayIconViewModel trayIconViewModel,
         OverlayViewModel overlayViewModel,
@@ -55,6 +57,7 @@ public sealed class AppManager : IDisposable
         _windowActivator = windowActivator;
         _overlayPositioner = overlayPositioner;
         _submitPasteService = submitPasteService;
+        _inputSimulator = inputSimulator;
         _updateCoordinator = updateCoordinator;
         _trayIconViewModel = trayIconViewModel;
         _overlayViewModel = overlayViewModel;
@@ -98,6 +101,7 @@ public sealed class AppManager : IDisposable
             // 6. Wire events
             _hotkeyService.HotkeyPressed += OnHotkeyPressed;
             _hotkeyService.HookFailed += OnHookFailed;
+            _inputSimulator.PasteBlocked += OnPasteBlocked;
             _submitPasteService.OverlayHideRequested += OnHideRequested;
             _trayIconViewModel.ShowOverlayRequested += OnShowOverlayRequested;
             _trayIconViewModel.SettingsRequested += OnSettingsRequested;
@@ -124,6 +128,13 @@ public sealed class AppManager : IDisposable
         Debug.WriteLine($"Global hook failed: {message}");
         // Open Settings so the user sees the permission panel and the reason.
         OnSettingsRequested(this, EventArgs.Empty);
+    }
+
+    private void OnPasteBlocked(object? sender, string message)
+    {
+        Debug.WriteLine($"Paste blocked: {message}");
+        // Open Settings so the user sees the secure-input line in the permission panel.
+        Dispatcher.UIThread.Post(() => OnSettingsRequested(this, EventArgs.Empty));
     }
 
     private void OnShowOverlayRequested(object? sender, EventArgs _) => ToggleOverlay();
@@ -306,6 +317,7 @@ public sealed class AppManager : IDisposable
         {
             _hotkeyService.HotkeyPressed -= OnHotkeyPressed;
             _hotkeyService.HookFailed -= OnHookFailed;
+            _inputSimulator.PasteBlocked -= OnPasteBlocked;
             _submitPasteService.OverlayHideRequested -= OnHideRequested;
             _trayIconViewModel.ShowOverlayRequested -= OnShowOverlayRequested;
             _trayIconViewModel.SettingsRequested -= OnSettingsRequested;
