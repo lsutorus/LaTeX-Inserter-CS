@@ -4,13 +4,18 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <ApplicationManifest>app.manifest</ApplicationManifest>
-    <ApplicationIcon>Assets\LaTeX-Inserter-icon-final.ico</ApplicationIcon>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <Version>0.0.13</Version>
     <PublishAot>true</PublishAot>
     <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+  <!-- Windows-only: the manifest governs window transparency and DPI awareness,
+       and ApplicationIcon only accepts .ico. Both break an osx-* publish. -->
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' == '' or $(RuntimeIdentifier.StartsWith('win'))">
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\LaTeX-Inserter-icon-final.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
