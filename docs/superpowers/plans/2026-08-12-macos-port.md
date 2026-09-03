@@ -3233,6 +3233,14 @@ Branch: `feat/macos-port`. Execute one task per session, clear context between t
 1. **Row 6b — the hotkey never reaches the managed handler.** Events reach `hook_event_proc` but Ctrl+Alt+M produces no overlay. Leading hypothesis is SharpHook's native→managed callback under Native AOT. Fix by instrumentation, not inspection — the matching logic already reads correctly.
 2. **Row 14a — the Settings window crashes the app** (AOT GC stack-walk failure via `AccentColorModule.Apply` over a built visual tree). Reproducible on demand; startup itself is stable at 6/6.
 
+**Run this discriminating experiment before debugging either blocker individually.** Rows 6b and 14a are both Native AOT runtime-integrity failures on `osx-x64` — 14a is a GC stack-walk abort, 6b is most likely a reverse-P/Invoke that never fires — and they may share one root cause. A single build with AOT disabled tests both at once:
+
+```bash
+dotnet publish src/LaTeXInserter -c Release -r osx-x64 --self-contained -p:PublishAot=false -o artifacts/publish-noaot
+```
+
+Then assemble/sign a bundle around it the way `build-local.sh` does (or temporarily point the script at that publish dir) and retest: open Settings, and press the hotkey. **If both faults disappear, the bug is the AOT toolchain on `osx-x64`, not application logic** — and the port's remaining work is a toolchain decision (pin/upgrade the ILC, or ship JIT on macOS), not a hunt through `HotkeyService` and `AccentColorModule`. **If they persist, both are genuine application bugs** and should be debugged separately per the notes in each row. Either outcome saves a session; note that the AOT-vs-JIT question also affects Task 15's release workflow, so answer it before wiring CI.
+
 **Next session should take row 6b first** — it gates Tasks 12 and 16 and is the last unknown in the core hotkey path; 14a gates the Settings-window verifications (Task 10 on-device, Task 14 Step 4, part of Task 16).
 
 **Working procedure for any macOS session that rebuilds** (learned the hard way, see row 6a): a rebuild changes the ad-hoc cdhash and silently voids TCC while System Settings keeps showing the old row as enabled. After every rebuild run `tccutil reset Accessibility io.github.lsutorus.latexinserter` and `tccutil reset ListenEvent io.github.lsutorus.latexinserter`, re-grant (Input Monitoring must be added manually with `+`), and do **not** rebuild again before testing. Confirm the hook is genuinely live with `sample <pid>` and look for `run (in libuiohook.dylib)` — the app's own permission panel is not usable for this, because reaching it crashes the app (row 14a). Build with `./build/macos/build-local.sh` and pass no RID; it now detects the host arch.
