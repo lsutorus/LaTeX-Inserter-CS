@@ -73,6 +73,10 @@ internal static class Program
     private static AppBuilder BuildAvaloniaApp()
         => AppBuilder.Configure<App>()
             .UsePlatformDetect()
+            // Avalonia's macOS backend sets NSApplicationActivationPolicyRegular
+            // itself, which overrides Info.plist's LSUIElement and puts a Dock
+            // icon on a menu-bar-only app. Ignored on Windows.
+            .With(new MacOSPlatformOptions { ShowInDock = false })
             .WithInterFont()
             .LogToTrace();
 }
