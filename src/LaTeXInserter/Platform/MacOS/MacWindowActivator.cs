@@ -37,6 +37,8 @@ internal sealed class MacWindowActivator : IWindowActivator
             _previousPid = frontmost == IntPtr.Zero
                 ? 0
                 : ObjC.SendInt(frontmost, ObjC.Sel("processIdentifier"));
+
+            MacTrace.Write($"CapturePrevious: pid={_previousPid}");
         }
         catch (Exception ex)
         {
@@ -53,6 +55,7 @@ internal sealed class MacWindowActivator : IWindowActivator
             var app = ObjC.Send(appClass, ObjC.Sel("sharedApplication"));
             // -[NSApplication activateIgnoringOtherApps:] takes a BOOL.
             ObjC.SendBoolByte(app, ObjC.Sel("activateIgnoringOtherApps:"), 1);
+            MacTrace.Write("Activate: activateIgnoringOtherApps: sent");
         }
         catch (Exception ex)
         {

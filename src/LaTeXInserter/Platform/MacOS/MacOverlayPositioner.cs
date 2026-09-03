@@ -18,6 +18,8 @@ internal sealed class MacOverlayPositioner : IOverlayPositioner
 
     public void PositionOverlay(Window window)
     {
+        MacTrace.Write($"PositionOverlay: enter, clientSize={window.ClientSize}");
+
         if (window.ClientSize.Height <= 0)
             return;
 
@@ -34,6 +36,10 @@ internal sealed class MacOverlayPositioner : IOverlayPositioner
 
         window.Position = OverlayPositioner.GetPosition(cursorPos, physicalSize, screen.WorkingArea);
         window.Opacity = 1;
+
+        MacTrace.Write(
+            $"PositionOverlay: cursor={cursorPos} scaling={scaling} " +
+            $"workingArea={screen.WorkingArea} -> position={window.Position}");
 
         // Bring the app forward so the borderless overlay can become key window.
         // An LSUIElement app will not get key status otherwise.

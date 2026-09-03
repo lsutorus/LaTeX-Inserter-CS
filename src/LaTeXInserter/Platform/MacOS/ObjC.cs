@@ -52,6 +52,12 @@ internal static partial class ObjC
     [LibraryImport(LibObjC, EntryPoint = "objc_msgSend")]
     private static partial void msgSend_void_ulong(IntPtr receiver, IntPtr selector, ulong arg1);
 
+    [LibraryImport(LibObjC)]
+    private static partial IntPtr object_getClass(IntPtr obj);
+
+    [LibraryImport(LibObjC)]
+    private static partial IntPtr class_getName(IntPtr cls);
+
     public static IntPtr GetClass(string name) => objc_getClass(name);
     public static IntPtr Sel(string name) => sel_registerName(name);
 
@@ -65,6 +71,24 @@ internal static partial class ObjC
     public static int SendInt(IntPtr recv, IntPtr sel) => msgSend_int(recv, sel);
     public static void SendVoid(IntPtr recv, IntPtr sel, IntPtr arg) => msgSend_void_ptr(recv, sel, arg);
     public static void SendVoidUlong(IntPtr recv, IntPtr sel, ulong arg) => msgSend_void_ulong(recv, sel, arg);
+
+    /// <summary>
+    /// Guard before every send to an object whose class is not statically known.
+    ///
+    /// An unrecognized selector raises an Objective-C exception, which unwinds as a
+    /// C++ exception straight past managed frames — a C# try/catch cannot see it and
+    /// the process aborts via std::terminate. Asking first is the only way to make
+    /// such a send survivable.
+    /// </summary>
+    public static bool Responds(IntPtr recv, string selector) =>
+        recv != IntPtr.Zero && msgSend_bool_ptr(recv, Sel("respondsToSelector:"), Sel(selector));
+
+    /// <summary>Class name of an instance, for diagnostics. "nil" when the pointer is null.</summary>
+    public static string ClassName(IntPtr obj)
+    {
+        if (obj == IntPtr.Zero) return "nil";
+        return Marshal.PtrToStringUTF8(class_getName(object_getClass(obj))) ?? "?";
+    }
 
     /// <summary>
     /// Frameworks whose classes are not already loaded (ServiceManagement) must be

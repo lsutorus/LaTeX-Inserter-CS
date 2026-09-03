@@ -33,9 +33,29 @@ internal static class MacWindowBehavior
             var handle = window.TryGetPlatformHandle();
             if (handle is null || handle.Handle == IntPtr.Zero) return;
 
-            // Avalonia's macOS handle is an NSView*; -[NSView window] gives the NSWindow*.
-            var nsWindow = ObjC.Send(handle.Handle, ObjC.Sel("window"));
+            MacTrace.Write(
+                $"ConfigureOverlay: descriptor={handle.HandleDescriptor} " +
+                $"class={ObjC.ClassName(handle.Handle)}");
+
+            // Avalonia's macOS platform handle is an NSWindow* for a top-level window,
+            // but the descriptor is not contractual and older backends handed back an
+            // NSView*. Both are handled: an NSView needs the -[NSView window] hop, an
+            // NSWindow is already the target and does not respond to -window at all.
+            // Probing rather than assuming is not defensive style here — an
+            // unrecognized selector raises an ObjC exception that no C# catch block
+            // can intercept, and the process aborts.
+            var nsWindow = ObjC.Responds(handle.Handle, "window")
+                ? ObjC.Send(handle.Handle, ObjC.Sel("window"))
+                : handle.Handle;
+
             if (nsWindow == IntPtr.Zero) return;
+
+            if (!ObjC.Responds(nsWindow, "setCollectionBehavior:") ||
+                !ObjC.Responds(nsWindow, "setLevel:"))
+            {
+                MacTrace.Write($"ConfigureOverlay: {ObjC.ClassName(nsWindow)} is not an NSWindow, skipped");
+                return;
+            }
 
             ObjC.SendVoidUlong(
                 nsWindow,
@@ -47,6 +67,7 @@ internal static class MacWindowBehavior
                 ObjC.Sel("setLevel:"),
                 unchecked((ulong)StatusWindowLevel));
 
+            MacTrace.Write($"ConfigureOverlay: applied to {ObjC.ClassName(nsWindow)}");
             _configured = true;
         }
         catch (Exception ex)
