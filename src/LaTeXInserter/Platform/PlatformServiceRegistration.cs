@@ -4,6 +4,7 @@ using LaTeXInserter.Platform.MacOS;
 using LaTeXInserter.Platform.Windows;
 using LaTeXInserter.Services;
 using Microsoft.Extensions.DependencyInjection;
+using SharpHook;
 
 namespace LaTeXInserter.Platform;
 
@@ -18,6 +19,7 @@ public static class PlatformServiceRegistration
                 services.AddSingleton<IOverlayPositioner, WindowsOverlayPositioner>();
                 services.AddSingleton<IStartupRegistrar, WindowsStartupRegistrar>();
                 services.AddSingleton<IPermissionService, NoOpPermissionService>();
+                services.AddSingleton<IEventSimulator, EventSimulator>();
                 break;
 
             case PlatformKind.MacOS:
@@ -26,6 +28,9 @@ public static class PlatformServiceRegistration
                 services.AddSingleton<IOverlayPositioner, MacOverlayPositioner>();
                 services.AddSingleton<IStartupRegistrar, MacStartupRegistrar>();
                 services.AddSingleton<IPermissionService, MacPermissionService>();
+                // Not SharpHook's EventSimulator: libuiohook posts to kCGHIDEventTap,
+                // which this machine silently drops. See MacEventSimulator.
+                services.AddSingleton<IEventSimulator, MacEventSimulator>();
 #pragma warning restore CA1416
                 break;
 

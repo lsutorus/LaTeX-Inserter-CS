@@ -25,6 +25,20 @@ internal static partial class MacNativeMethods
         public double Y;
     }
 
+    // kCGEventSourceStateHIDSystemState
+    private const int EventSourceStateHidSystemState = 1;
+
+    // kCGSessionEventTap. NOT kCGHIDEventTap (0): on at least one Intel Mac running
+    // macOS 13.7.8, every event posted to the HID tap is silently discarded, while
+    // the identical event on the session tap is delivered. That is the whole of
+    // blocker 12a — libuiohook posts only to the HID tap, so SharpHook's simulation
+    // can never deliver a keystroke there. Measured, not inferred: a probe posted
+    // Cmd+V on both taps back to back, and only the session tap pasted.
+    private const uint SessionEventTap = 1;
+
+    // kCGEventFlagMaskCommand
+    public const ulong EventFlagMaskCommand = 0x00100000;
+
     // kIOHIDRequestTypeListenEvent
     public const uint IOHIDRequestTypeListenEvent = 1;
     // IOHIDAccessType
@@ -41,6 +55,19 @@ internal static partial class MacNativeMethods
     [LibraryImport(CoreFoundation)]
     private static partial void CFRelease(IntPtr cf);
 
+    [LibraryImport(CoreGraphics)]
+    private static partial IntPtr CGEventSourceCreate(int stateID);
+
+    [LibraryImport(CoreGraphics)]
+    private static partial IntPtr CGEventCreateKeyboardEvent(
+        IntPtr source, ushort virtualKey, [MarshalAs(UnmanagedType.U1)] bool keyDown);
+
+    [LibraryImport(CoreGraphics)]
+    private static partial void CGEventSetFlags(IntPtr @event, ulong flags);
+
+    [LibraryImport(CoreGraphics)]
+    private static partial void CGEventPost(uint tap, IntPtr @event);
+
     [LibraryImport(ApplicationServices)]
     [return: MarshalAs(UnmanagedType.U1)]
     public static partial bool AXIsProcessTrusted();
@@ -55,6 +82,46 @@ internal static partial class MacNativeMethods
     [LibraryImport(Carbon)]
     [return: MarshalAs(UnmanagedType.U1)]
     public static partial bool IsSecureEventInputEnabled();
+
+    /// <summary>
+    /// Creates the shared event source used for synthetic key events, or
+    /// <see cref="IntPtr.Zero"/> if one cannot be made.
+    /// </summary>
+    /// <remarks>
+    /// A real source matters: the same probe that found the tap bug also showed
+    /// that posting with a NULL source is dropped even on the working session tap.
+    /// </remarks>
+    public static IntPtr CreateKeyEventSource() =>
+        CGEventSourceCreate(EventSourceStateHidSystemState);
+
+    /// <summary>Releases a Core Foundation object obtained from this class.</summary>
+    public static void Release(IntPtr cf)
+    {
+        if (cf != IntPtr.Zero)
+            CFRelease(cf);
+    }
+
+    /// <summary>
+    /// Posts one synthetic key event to the session event tap.
+    /// </summary>
+    /// <returns><c>false</c> if the event could not be created.</returns>
+    public static bool PostKeyEvent(IntPtr source, ushort virtualKey, bool keyDown, ulong flags)
+    {
+        var evt = CGEventCreateKeyboardEvent(source, virtualKey, keyDown);
+        if (evt == IntPtr.Zero)
+            return false;
+
+        try
+        {
+            CGEventSetFlags(evt, flags);
+            CGEventPost(SessionEventTap, evt);
+            return true;
+        }
+        finally
+        {
+            CFRelease(evt);
+        }
+    }
 
     /// <summary>Current mouse location in global display coordinates (top-left origin).</summary>
     public static CGPoint GetCursorLocation()

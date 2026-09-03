@@ -35,9 +35,9 @@ internal static class Program
         services.AddSingleton<ILatexConverterService, LatexConverterService>();
         services.AddSingleton<IAccentColorModule, AccentColorModule>();
 
-        // SharpHook
+        // SharpHook. IEventSimulator is registered per-platform by
+        // AddPlatformServices — macOS needs a different event-posting route.
         services.AddSingleton<SimpleGlobalHook>();
-        services.AddSingleton<IEventSimulator, EventSimulator>();
 
         // Phase 2 services
         services.AddSingleton<IHotkeyService, HotkeyService>();

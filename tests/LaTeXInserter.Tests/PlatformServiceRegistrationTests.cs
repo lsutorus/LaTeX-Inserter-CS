@@ -6,6 +6,7 @@ using LaTeXInserter.Platform.MacOS;
 using LaTeXInserter.Platform.Windows;
 using LaTeXInserter.Services;
 using Microsoft.Extensions.DependencyInjection;
+using SharpHook;
 using Xunit;
 
 namespace LaTeXInserter.Tests;
@@ -23,6 +24,7 @@ public class PlatformServiceRegistrationTests
         Assert.IsType<WindowsOverlayPositioner>(sp.GetRequiredService<IOverlayPositioner>());
         Assert.IsType<WindowsStartupRegistrar>(sp.GetRequiredService<IStartupRegistrar>());
         Assert.IsType<NoOpPermissionService>(sp.GetRequiredService<IPermissionService>());
+        Assert.IsType<EventSimulator>(sp.GetRequiredService<IEventSimulator>());
     }
 
     [Fact]
@@ -50,5 +52,9 @@ public class PlatformServiceRegistrationTests
             services.Single(d => d.ServiceType == typeof(IStartupRegistrar)).ImplementationType);
         Assert.Equal(typeof(MacPermissionService),
             services.Single(d => d.ServiceType == typeof(IPermissionService)).ImplementationType);
+        // Blocker 12a: SharpHook's own EventSimulator posts to kCGHIDEventTap and
+        // is silently dropped, so macOS must not get the default registration.
+        Assert.Equal(typeof(MacEventSimulator),
+            services.Single(d => d.ServiceType == typeof(IEventSimulator)).ImplementationType);
     }
 }
