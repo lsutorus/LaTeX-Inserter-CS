@@ -6,8 +6,11 @@
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
-    <Version>0.0.13</Version>
-    <PublishAot>true</PublishAot>
+    <Version>0.1.0</Version>
+    <PublishAot Condition="'$(RuntimeIdentifier)' != '' and $(RuntimeIdentifier.StartsWith('win'))">true</PublishAot>
+    <PublishAot Condition="'$(RuntimeIdentifier)' != '' and $(RuntimeIdentifier.StartsWith('osx'))">false</PublishAot>
+    <PublishAot Condition="'$(RuntimeIdentifier)' == '' and $([MSBuild]::IsOSPlatform('OSX'))">false</PublishAot>
+    <PublishAot Condition="'$(RuntimeIdentifier)' == '' and $([MSBuild]::IsOSPlatform('Windows'))">true</PublishAot>
     <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
 

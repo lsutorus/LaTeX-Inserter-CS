@@ -3,16 +3,16 @@
 </div>
 
 <div align="center">
-  <a href="https://github.com/lsutorus/LaTeX-Inserter-CS/releases/latest"><img src="https://img.shields.io/github/v/release/lsutorus/LaTeX-Inserter-CS?color=800f00&style=plastic" alt="GitHub release"></a>&nbsp;<img src="https://img.shields.io/badge/OS-Windows-blue?style=plastic&logo=windows&color=0a348f" alt="Windows OS">&nbsp;<a href="https://github.com/lsutorus/LaTeX-Inserter-CS/search?l=c%23"><img src="https://img.shields.io/badge/.NET-10-512BD4?style=plastic&logo=dotnet&logoColor=white" alt=".NET 10"></a>&nbsp;<a href="https://github.com/lsutorus/LaTeX-Inserter-CS/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-MIT-C41E3A?style=plastic" alt="License"></a>
+  <a href="https://github.com/lsutorus/LaTeX-Inserter-CS/releases/latest"><img src="https://img.shields.io/github/v/release/lsutorus/LaTeX-Inserter-CS?color=800f00&style=plastic" alt="GitHub release"></a>&nbsp;<img src="https://img.shields.io/badge/OS-Windows%20%7C%20macOS-blue?style=plastic&logo=apple&color=0a348f" alt="Windows & macOS">&nbsp;<a href="https://github.com/lsutorus/LaTeX-Inserter-CS/search?l=c%23"><img src="https://img.shields.io/badge/.NET-10-512BD4?style=plastic&logo=dotnet&logoColor=white" alt=".NET 10"></a>&nbsp;<a href="https://github.com/lsutorus/LaTeX-Inserter-CS/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-MIT-C41E3A?style=plastic" alt="License"></a>
 </div>
 
 # LaTeX Inserter
 
-A Windows system tray app that lets you type LaTeX and paste Unicode equivalents anywhere. Press **Ctrl+Alt+M**, type LaTeX-style commands, and hit Enter. The Unicode equivalent is pasted into whatever window you were in and copied to your clipboard.
+A cross-platform system tray / menu bar app for Windows and macOS that lets you type LaTeX and paste Unicode equivalents anywhere. Press **Ctrl+Alt+M** (or **⌃⌥M** on Mac), type LaTeX-style commands, and hit Enter. The Unicode equivalent is pasted into whatever window you were in and copied to your clipboard.
 
 ## How it works
 
-1. **Ctrl+Alt+M** opens a floating overlay near your cursor
+1. **Ctrl+Alt+M** (or **⌃⌥M**) opens a floating overlay near your cursor
 2. Type LaTeX: e.g. `\alpha`, `\sqrt{x^2}`, `\sum`, `\Rightarrow`
 3. See the Unicode preview in real time
 4. Press **Enter**: the Unicode is copied to your clipboard and auto-pasted into whatever window you were in
@@ -20,12 +20,19 @@ A Windows system tray app that lets you type LaTeX and paste Unicode equivalents
 
 ## Install
 
+### macOS
+1. Go to [Releases](https://github.com/lsutorus/LaTeX-Inserter-CS/releases/latest).
+2. Download **`LaTeXInserter-mac-arm64.zip`** (Apple Silicon M1/M2/M3/M4) or **`LaTeXInserter-mac-x64.zip`** (Intel).
+3. Unzip and drag `LaTeX Inserter.app` to your `/Applications` folder.
+4. Launch the app and grant Accessibility and Input Monitoring permissions when prompted (required for global hotkeys and auto-paste).
+
+### Windows
 > Requires Windows 10 or later. The app runs as admin (needed for global hotkey detection).
 
 1. Go to [Releases](https://github.com/lsutorus/LaTeX-Inserter-CS/releases/latest).
 2. Download **`LaTeXInserter-win-Setup.exe`**.
 3. Run it. Velopack installs the app and launches it.
-4. The app lives in system tray. Right-click the tray icon to configure it.
+4. The app lives in your system tray. Right-click the tray icon to configure it.
 
 A portable build (`LaTeXInserter-win-Portable.zip`) is also available if you prefer not to install.
 
@@ -70,29 +77,35 @@ https://github.com/user-attachments/assets/8c598fb8-487c-405b-b8f8-06479c37f005
 Use **Add/Remove Programs** in Windows Settings, or run the uninstaller shortcut the app created. Your `custom_mappings.txt` is left in AppData if you reinstall later.
 
 ## Building from source
-
-```powershell
+ 
+```bash
 # Requires .NET 10 SDK
 dotnet build LaTeXInserter.slnx
 dotnet run --project src/LaTeXInserter
 ```
 
-To publish a release build (Native AOT, win-x64):
+To build macOS `.app` bundles and release zips:
+
+```bash
+./build/macos/package-release.sh
+```
+
+To publish a Windows release build (Native AOT, win-x64):
 
 ```powershell
 dotnet publish src/LaTeXInserter -c Release -r win-x64 -o publish
 ```
 
-To package an installer with Velopack:
+To package a Windows installer with Velopack:
 
 ```powershell
 dotnet tool install --global vpk
 Copy-Item src/LaTeXInserter/Assets/LaTeX-Inserter-icon-final.ico publish/
-vpk pack --packId LaTeXInserter --packVersion 0.0.13 --packDir publish `
+vpk pack --packId LaTeXInserter --packVersion 0.1.0 --packDir publish `
   --mainExe LaTeXInserter.exe --icon publish/LaTeX-Inserter-icon-final.ico
 ```
 
-Running locally on Windows requires elevation (global keyboard hooks need admin).
+Running locally on Windows requires elevation (global keyboard hooks need admin). On macOS, Accessibility and Input Monitoring permissions are required.
 
 ## License
 

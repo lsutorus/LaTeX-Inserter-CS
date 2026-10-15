@@ -11,7 +11,7 @@ VERSION="$(grep -o '<Version>[^<]*</Version>' src/LaTeXInserter/LaTeXInserter.cs
 PUBLISH_DIR="artifacts/publish-$RID"
 APP="artifacts/LaTeX Inserter.app"
 
-echo "==> Publishing $RID (Native AOT), version $VERSION"
+echo "==> Publishing $RID, version $VERSION"
 rm -rf "$PUBLISH_DIR" "$APP"
 dotnet publish src/LaTeXInserter -c Release -r "$RID" --self-contained -o "$PUBLISH_DIR"
 
@@ -21,6 +21,7 @@ echo "==> Generating icon"
 echo "==> Assembling bundle"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp -R "$PUBLISH_DIR"/* "$APP/Contents/MacOS/"
+chmod +x "$APP/Contents/MacOS/LaTeXInserter"
 cp build/macos/LaTeXInserter.icns "$APP/Contents/Resources/"
 sed "s/__VERSION__/$VERSION/g" build/macos/Info.plist > "$APP/Contents/Info.plist"
 
