@@ -3,7 +3,8 @@
 </div>
 
 <div align="center">
-  <a href="https://github.com/lsutorus/LaTeX-Inserter-CS/releases/latest"><img src="https://img.shields.io/github/v/release/lsutorus/LaTeX-Inserter-CS?color=800f00&style=plastic" alt="GitHub release"></a>&nbsp;<img src="https://img.shields.io/badge/OS-Windows%20%7C%20macOS-blue?style=plastic&logo=apple&color=0a348f" alt="Windows & macOS">&nbsp;<a href="https://github.com/lsutorus/LaTeX-Inserter-CS/search?l=c%23"><img src="https://img.shields.io/badge/.NET-10-512BD4?style=plastic&logo=dotnet&logoColor=white" alt=".NET 10"></a>&nbsp;<a href="https://github.com/lsutorus/LaTeX-Inserter-CS/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-MIT-C41E3A?style=plastic" alt="License"></a>
+  <a href="https://github.com/lsutorus/LaTeX-Inserter-CS/releases/latest"><img src="https://img.shields.io/github/v/release/lsutorus/LaTeX-Inserter-CS?color=800f00&style=plastic" alt="GitHub release"></a>&nbsp;<img src="https://custom-icon-badges.demolab.com/badge/Windows-0078D6?logo=windows11&logoColor=white" alt="Windows">&nbsp;<img src="https://img.shields.io/badge/macOS-000000?logo=apple&logoColor=F0F0F0" alt="macOS">&nbsp;<a href="https://github.com/lsutorus/LaTeX-Inserter-CS/search?l=c%23"><img src="https://img.shields.io/badge/.NET-10-512BD4?style=plastic&logo=dotnet&logoColor=white" alt=".NET 10"></a>&nbsp;<a href="https://github.com/lsutorus/LaTeX-Inserter-CS/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-MIT-C41E3A?style=plastic" alt="License"></a>
+  
 </div>
 
 # LaTeX Inserter
