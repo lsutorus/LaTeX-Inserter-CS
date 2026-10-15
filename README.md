@@ -16,7 +16,7 @@ A cross-platform system tray / menu bar app for Windows and macOS that lets you 
 1. **Ctrl+Alt+M** (or **⌃⌥M**) opens a floating overlay near your cursor
 2. Type LaTeX: e.g. `\alpha`, `\sqrt{x^2}`, `\sum`, `\Rightarrow`
 3. See the Unicode preview in real time
-4. Press **Enter**: the Unicode is copied to your clipboard and auto-pasted into whatever window you were in
+4. Press **Enter**: the Unicode is copied to your clipboard and auto-pasted wherever your cursor was
 
 
 ## Install
