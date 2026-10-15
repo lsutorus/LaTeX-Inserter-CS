@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using LaTeXInserter.Abstractions;
+using LaTeXInserter.Models;
 
 namespace LaTeXInserter.Services;
 
@@ -16,12 +17,13 @@ internal sealed class SubmitPasteService : ISubmitPasteService
         IClipboardProvider clipboardProvider,
         IWindowActivator windowActivator,
         IInputSimulatorService inputSimulator,
-        int pasteDelayMs = 50)
+        int? pasteDelayMs = null)
     {
         _clipboardProvider = clipboardProvider;
         _windowActivator = windowActivator;
         _inputSimulator = inputSimulator;
-        _pasteDelayMs = pasteDelayMs;
+        _pasteDelayMs = pasteDelayMs
+            ?? (PlatformKinds.Current == PlatformKind.MacOS ? 120 : 50);
     }
 
     public async Task ExecuteAsync(string convertedText)

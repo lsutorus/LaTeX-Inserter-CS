@@ -1,8 +1,9 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using LaTeXInserter.Abstractions;
+using LaTeXInserter.Models;
+using LaTeXInserter.Platform;
 using LaTeXInserter.Services;
-using LaTeXInserter.Platform.Windows;
 using LaTeXInserter.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using SharpHook;
@@ -29,22 +30,21 @@ internal static class Program
 
     private static void ConfigureServices(IServiceCollection services)
     {
+        services.AddSingleton<IAppDataPathProvider, DefaultAppDataPathProvider>();
         services.AddSingleton<ISettingsService, SettingsService>();
         services.AddSingleton<ILatexConverterService, LatexConverterService>();
         services.AddSingleton<IAccentColorModule, AccentColorModule>();
 
-        // SharpHook
+        // SharpHook. IEventSimulator is registered per-platform by
+        // AddPlatformServices — macOS needs a different event-posting route.
         services.AddSingleton<SimpleGlobalHook>();
-        services.AddSingleton<IEventSimulator, EventSimulator>();
 
         // Phase 2 services
         services.AddSingleton<IHotkeyService, HotkeyService>();
         services.AddSingleton<IClipboardProvider, AvaloniaClipboardProvider>();
         services.AddSingleton<IInputSimulatorService, InputSimulatorService>();
-        services.AddSingleton<IWindowActivator, WindowsWindowActivator>();
-        services.AddSingleton<IOverlayPositioner, WindowsOverlayPositioner>();
+        services.AddPlatformServices(PlatformKinds.Current);
         services.AddSingleton<ISubmitPasteService, SubmitPasteService>();
-        services.AddSingleton<IStartupRegistrar, WindowsStartupRegistrar>();
 
         // Phase 3 — tray & lifecycle
         services.AddSingleton<TrayIconViewModel>();
@@ -73,6 +73,10 @@ internal static class Program
     private static AppBuilder BuildAvaloniaApp()
         => AppBuilder.Configure<App>()
             .UsePlatformDetect()
+            // Avalonia's macOS backend sets NSApplicationActivationPolicyRegular
+            // itself, which overrides Info.plist's LSUIElement and puts a Dock
+            // icon on a menu-bar-only app. Ignored on Windows.
+            .With(new MacOSPlatformOptions { ShowInDock = false })
             .WithInterFont()
             .LogToTrace();
 }

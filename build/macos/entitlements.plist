@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!--
+      Deliberately minimal.
+
+      App Sandbox is NOT declared: Velopack's updater writes outside the sandbox and
+      may request elevation, both of which a sandboxed app cannot do.
+
+      Posting CGEvents and creating an event tap need no entitlement — they are
+      gated by TCC (Accessibility / Input Monitoring), which the user grants.
+
+      Native AOT produces no JIT pages, so no allow-jit or
+      allow-unsigned-executable-memory entitlement is required.
+
+      If notarization fails complaining about the bundled libuiohook/Skia dylibs,
+      the fix is to let vpk deep-sign them (the default), not to add
+      disable-library-validation here.
+    -->
+</dict>
+</plist>

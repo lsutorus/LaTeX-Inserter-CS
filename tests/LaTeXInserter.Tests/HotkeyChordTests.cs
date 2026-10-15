@@ -39,4 +39,39 @@ public class HotkeyChordTests
         var deserialized = JsonSerializer.Deserialize(json, JsonContext.Default.HotkeyChord);
         Assert.Equal(original, deserialized);
     }
+
+    [Fact]
+    public void Format_MacOs_UsesAppleGlyphsInCanonicalOrder()
+    {
+        var chord = new HotkeyChord(
+            ModifierMask.Control | ModifierMask.Alt, KeyCode.VcM);
+
+        Assert.Equal("⌃⌥M", HotkeyChordFormatter.Format(chord, PlatformKind.MacOS));
+    }
+
+    [Fact]
+    public void Format_MacOs_MetaRendersAsCommandGlyph()
+    {
+        var chord = new HotkeyChord(
+            ModifierMask.Windows | ModifierMask.Shift, KeyCode.VcK);
+
+        Assert.Equal("⇧⌘K", HotkeyChordFormatter.Format(chord, PlatformKind.MacOS));
+    }
+
+    [Fact]
+    public void Format_Windows_IsUnchanged()
+    {
+        var chord = new HotkeyChord(
+            ModifierMask.Control | ModifierMask.Alt, KeyCode.VcM);
+
+        Assert.Equal("Ctrl+Alt+M", HotkeyChordFormatter.Format(chord, PlatformKind.Windows));
+    }
+
+    [Fact]
+    public void Format_MacOs_UndefinedTriggerOmitsKey()
+    {
+        var chord = new HotkeyChord(ModifierMask.Control, KeyCode.VcUndefined);
+
+        Assert.Equal("⌃", HotkeyChordFormatter.Format(chord, PlatformKind.MacOS));
+    }
 }

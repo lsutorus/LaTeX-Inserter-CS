@@ -10,6 +10,12 @@ namespace LaTeXInserter.Views;
 
 public partial class OverlayWindow : Window
 {
+    // macOS raises Deactivated transiently while the app comes forward, which would
+    // dismiss the overlay the instant it appears. Ignore deactivations that land
+    // within this window of the overlay becoming visible.
+    private static readonly TimeSpan DeactivateGrace = TimeSpan.FromMilliseconds(400);
+    private DateTime _shownAtUtc = DateTime.MinValue;
+
     private OverlayViewModel? _vm;
 
     public IOverlayPositioner? OverlayPositioner { get; set; }
@@ -34,6 +40,7 @@ public partial class OverlayWindow : Window
         if (change.Property == IsVisibleProperty && IsVisible)
         {
             _vm = DataContext as OverlayViewModel;
+            _shownAtUtc = DateTime.UtcNow;
             Opacity = 0;
             OverlayPositioner?.PositionOverlay(this);
 
@@ -87,6 +94,9 @@ public partial class OverlayWindow : Window
 
     private void OnDeactivated(object? sender, EventArgs e)
     {
+        if (DateTime.UtcNow - _shownAtUtc < DeactivateGrace)
+            return;
+
         _vm?.Cancel();
     }
 }
