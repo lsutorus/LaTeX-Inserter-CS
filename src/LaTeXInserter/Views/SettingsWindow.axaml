@@ -16,6 +16,42 @@
         <SolidColorBrush x:Key="CheckBoxForegroundUncheckedPointerOver" Color="#CCCCCC" />
     </Window.Resources>
 
+    <Window.Styles>
+        <!-- CheckBox styling: rounded box + respect selected accent color on hover -->
+        <Style Selector="CheckBox">
+            <Setter Property="CornerRadius" Value="6" />
+        </Style>
+        <Style Selector="CheckBox /template/ Border#NormalRectangle">
+            <Setter Property="CornerRadius" Value="6" />
+        </Style>
+        <Style Selector="CheckBox:checked /template/ Border#NormalRectangle">
+            <Setter Property="Background" Value="{DynamicResource SystemAccentBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SystemAccentBrush}" />
+        </Style>
+        <Style Selector="CheckBox:checked:pointerover /template/ Border#NormalRectangle">
+            <Setter Property="Background" Value="{DynamicResource SystemAccentBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SystemAccentBrush}" />
+            <Setter Property="Opacity" Value="0.85" />
+        </Style>
+        <Style Selector="CheckBox:checked:pressed /template/ Border#NormalRectangle">
+            <Setter Property="Background" Value="{DynamicResource SystemAccentBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SystemAccentBrush}" />
+            <Setter Property="Opacity" Value="0.7" />
+        </Style>
+        <Style Selector="CheckBox:pointerover /template/ Border#NormalRectangle">
+            <Setter Property="Background" Value="#333333" />
+            <Setter Property="BorderBrush" Value="#888888" />
+        </Style>
+
+        <!-- Rounded buttons in Settings window -->
+        <Style Selector="Button">
+            <Setter Property="CornerRadius" Value="6" />
+        </Style>
+        <Style Selector="Button.accent-swatch">
+            <Setter Property="CornerRadius" Value="4" />
+        </Style>
+    </Window.Styles>
+
     <ScrollViewer>
         <StackPanel Margin="16" Spacing="16">
 
@@ -50,12 +86,14 @@
                                         BorderThickness="2" CornerRadius="6"
                                         Classes.accent-selected="{Binding IsSelected}"
                                         Classes="accent-ring">
-                                    <Button Width="24" Height="24"
+                                    <Button Width="20" Height="20"
                                             Classes="accent-swatch"
                                             Click="OnSwatchClick">
                                         <!-- Fill the swatch with the accent color via a child
                                              Border so the parent Button's hover stays neutral. -->
-                                        <Border Background="{Binding Brush}" CornerRadius="4" />
+                                        <Border Width="20" Height="20"
+                                                Background="{Binding Brush}"
+                                                CornerRadius="4" />
                                     </Button>
                                 </Border>
                             </DataTemplate>

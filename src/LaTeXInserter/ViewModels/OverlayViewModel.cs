@@ -104,7 +104,8 @@ public sealed partial class OverlayViewModel : ObservableObject
         _currentPrefixStart = match.Index;
 
         var candidates = _converter.CommandNames
-            .Where(name => name.StartsWith(_currentPrefix, StringComparison.Ordinal))
+            .Where(name => name.StartsWith(_currentPrefix, StringComparison.Ordinal)
+                        && !name.Equals(_currentPrefix, StringComparison.Ordinal))
             .Take(20)
             .ToList();
 

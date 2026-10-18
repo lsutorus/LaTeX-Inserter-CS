@@ -8,7 +8,7 @@ namespace LaTeXInserter.Tests;
 public class HotkeyServiceStartTests
 {
     [Fact]
-    public void HookFailed_RaisedWhenRunAsyncThrows()
+    public async Task HookFailed_RaisedWhenRunAsyncThrows()
     {
         // SimpleGlobalHook cannot be substituted (non-virtual members), so drive the
         // failure path through a disposed hook: RunAsync on a disposed hook faults.
@@ -19,7 +19,7 @@ public class HotkeyServiceStartTests
         string? reported = null;
         sut.HookFailed += (_, message) => reported = message;
 
-        sut.StartAsync(CancellationToken.None).GetAwaiter().GetResult();
+        await sut.StartAsync(CancellationToken.None);
 
         // HotkeyService marshals the failure onto the Avalonia dispatcher. The test
         // host has no UI message loop, so drain queued jobs manually.

@@ -74,11 +74,56 @@ public class OverlayViewModelTests
         vm.InputText = "\\alp";
 
         Assert.True(vm.IsAutocompleteOpen);
-        Assert.Equal(1, vm.AutocompleteItems.Count);
+        Assert.Single(vm.AutocompleteItems);
         Assert.Equal("\\alpha", vm.AutocompleteItems[0].Command);
         Assert.Equal("α", vm.AutocompleteItems[0].Unicode);
         Assert.NotNull(vm.SelectedAutocompleteItem);
         Assert.Equal("\\alpha", vm.SelectedAutocompleteItem.Command);
+    }
+
+    [Fact]
+    public void ExactlyCompletedCommand_WithoutLongerExtensions_ClosesAutocomplete()
+    {
+        // When typing \nu, since it is completely typed and has no longer commands, autocomplete closes
+        var names = new List<string> { "\\nu" };
+        var commands = new Dictionary<string, string> { { "\\nu", "ν" } };
+        var converter = CreateConverter(commandNames: names, commands: commands);
+        converter.Convert("\\nu").Returns("ν");
+        var vm = new OverlayViewModel(converter, CreateSettings(), CreateAccentColorModule());
+
+        vm.InputText = "\\nu";
+
+        Assert.Equal("ν", vm.PreviewText);
+        Assert.False(vm.IsAutocompleteOpen);
+        Assert.Empty(vm.AutocompleteItems);
+    }
+
+    [Fact]
+    public void ExactlyCompletedCommand_WithLongerExtensions_SuppressesExactMatchOnly()
+    {
+        // When typing \mid, \mid itself is excluded, but \midbarvee, \midbarwedge, and \midcir remain
+        var names = new List<string> { "\\mid", "\\midbarvee", "\\midbarwedge", "\\midcir" };
+        var commands = new Dictionary<string, string>
+        {
+            { "\\mid", "∣" },
+            { "\\midbarvee", "⩮" },
+            { "\\midbarwedge", "⩯" },
+            { "\\midcir", "⫰" }
+        };
+        var converter = CreateConverter(commandNames: names, commands: commands);
+        converter.Convert("\\mid").Returns("∣");
+        var vm = new OverlayViewModel(converter, CreateSettings(), CreateAccentColorModule());
+
+        vm.InputText = "\\mid";
+
+        Assert.Equal("∣", vm.PreviewText);
+        Assert.True(vm.IsAutocompleteOpen);
+        Assert.Equal(3, vm.AutocompleteItems.Count);
+        Assert.DoesNotContain(vm.AutocompleteItems, item => item.Command == "\\mid");
+        Assert.Contains(vm.AutocompleteItems, item => item.Command == "\\midbarvee");
+        Assert.Contains(vm.AutocompleteItems, item => item.Command == "\\midbarwedge");
+        Assert.Contains(vm.AutocompleteItems, item => item.Command == "\\midcir");
+        Assert.Equal("\\midbarvee", vm.SelectedAutocompleteItem?.Command);
     }
 
     [Fact]

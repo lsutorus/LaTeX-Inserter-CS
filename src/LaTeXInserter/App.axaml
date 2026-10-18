@@ -5,6 +5,7 @@
 
     <Application.Resources>
         <SolidColorBrush x:Key="AccentBgBrush" Color="#404040" Opacity="0.25" />
+        <SolidColorBrush x:Key="SystemAccentBrush" Color="#404040" />
     </Application.Resources>
 
     <Application.Styles>
@@ -71,10 +72,58 @@
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="CornerRadius" Value="4" />
             <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
-        <!-- Keep swatch fill as the accent color on hover (no Fluent darkening) -->
-        <Style Selector="Button.accent-swatch:pointerover">
+        <!-- Neutralize Fluent button pointerover/pressed on swatch so no rogue border/background shifts the swatch -->
+        <Style Selector="Button.accent-swatch:pointerover /template/ ContentPresenter#PART_ContentPresenter">
             <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style Selector="Button.accent-swatch:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+
+        <!-- System Tray Menu styles (Razer Synapse style) -->
+        <Style Selector="MenuFlyoutPresenter">
+            <Setter Property="Background" Value="#1E1E1E" />
+            <Setter Property="BorderBrush" Value="#333333" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="4,4" />
+            <Setter Property="MinWidth" Value="180" />
+        </Style>
+        <Style Selector="MenuFlyoutPresenter MenuItem">
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="Foreground" Value="#E0E0E0" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="8,5" />
+            <Setter Property="MinHeight" Value="28" />
+        </Style>
+        <Style Selector="MenuFlyoutPresenter MenuItem /template/ Border#PART_LayoutRoot">
+            <Setter Property="CornerRadius" Value="4" />
+        </Style>
+        <Style Selector="MenuFlyoutPresenter MenuItem:pointerover /template/ Border#PART_LayoutRoot">
+            <Setter Property="Background" Value="#323232" />
+        </Style>
+        <Style Selector="MenuFlyoutPresenter MenuItem:pointerover">
+            <Setter Property="Foreground" Value="#FFFFFF" />
+        </Style>
+        <Style Selector="MenuFlyoutPresenter MenuItem /template/ Viewbox#PART_IconPresenter">
+            <Setter Property="Width" Value="15" />
+            <Setter Property="Height" Value="15" />
+            <Setter Property="Margin" Value="0,0,8,0" />
+        </Style>
+        <Style Selector="MenuFlyoutPresenter Separator">
+            <Setter Property="Background" Value="#333333" />
+            <Setter Property="Height" Value="1" />
+            <Setter Property="Margin" Value="4,3" />
         </Style>
     </Application.Styles>
 

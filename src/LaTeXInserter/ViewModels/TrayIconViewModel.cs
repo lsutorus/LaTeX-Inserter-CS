@@ -1,4 +1,6 @@
 using Avalonia.Controls;
+using Avalonia.Media.Imaging;
+using Avalonia.Platform;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.Input;
 using LaTeXInserter.Abstractions;
@@ -32,11 +34,26 @@ public sealed partial class TrayIconViewModel
         _hotkeyService = hotkeyService;
         _settingsService = settingsService;
 
-        _showHideOverlayItem = new NativeMenuItem($"Show/Hide Overlay ({hotkeyService.CurrentHotkey})");
-        _settingsItem = new NativeMenuItem("Settings...");
-        _editMappingsItem = new NativeMenuItem("Edit Custom Mappings...");
-        _checkForUpdatesItem = new NativeMenuItem("Check for Updates...");
-        _quitItem = new NativeMenuItem("Quit");
+        _showHideOverlayItem = new NativeMenuItem($"Show/Hide Overlay ({hotkeyService.CurrentHotkey})")
+        {
+            Icon = LoadIcon("tray-showhide.png")
+        };
+        _settingsItem = new NativeMenuItem("Settings")
+        {
+            Icon = LoadIcon("tray-settings.png")
+        };
+        _editMappingsItem = new NativeMenuItem("Edit Custom Mappings")
+        {
+            Icon = LoadIcon("tray-mappings.png")
+        };
+        _checkForUpdatesItem = new NativeMenuItem("Check for Updates")
+        {
+            Icon = LoadIcon("tray-update.png")
+        };
+        _quitItem = new NativeMenuItem("Quit")
+        {
+            Icon = LoadIcon("tray-quit.png")
+        };
 
         _showHideOverlayItem.Command = ShowHideOverlayCommand;
         _settingsItem.Command = SettingsCommand;
@@ -84,4 +101,18 @@ public sealed partial class TrayIconViewModel
 
     [RelayCommand]
     private void Quit() => QuitRequested?.Invoke(this, EventArgs.Empty);
+
+    private static Bitmap? LoadIcon(string assetName)
+    {
+        try
+        {
+            var uri = new Uri($"avares://LaTeXInserter/Assets/{assetName}");
+            using var stream = AssetLoader.Open(uri);
+            return new Bitmap(stream);
+        }
+        catch
+        {
+            return null;
+        }
+    }
 }
